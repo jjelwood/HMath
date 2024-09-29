@@ -6,12 +6,12 @@ cabal-version: 2.2
 
 name:           HMath
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/HMath#readme>
-homepage:       https://github.com/githubuser/HMath#readme
-bug-reports:    https://github.com/githubuser/HMath/issues
-author:         Author name here
-maintainer:     example@example.com
-copyright:      2024 Author name here
+description:    Please see the README on GitHub at <https://github.com/jjelwood/HMath#readme>
+homepage:       https://github.com/jjelwood/HMath#readme
+bug-reports:    https://github.com/jjelwood/HMath/issues
+author:         JJ Elwood
+maintainer:     jjelwood2005@gmail.com
+copyright:      2024 JJ Elwood
 license:        BSD-3-Clause
 license-file:   LICENSE
 build-type:     Simple
@@ -21,20 +21,30 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/HMath
+  location: https://github.com/jjelwood/HMath
 
 library
   exposed-modules:
-      Lib
+      Core.KnuthBendixCompletion
+      Core.Parser
+      Core.Types
   other-modules:
       Paths_HMath
   autogen-modules:
       Paths_HMath
   hs-source-dirs:
       src
+  default-extensions:
+      OverloadedStrings
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
-      base >=4.7 && <5
+      QuickCheck
+    , attoparsec
+    , base >=4.7 && <5
+    , containers
+    , hspec
+    , optparse-applicative
+    , text
   default-language: Haskell2010
 
 executable HMath-exe
@@ -48,7 +58,13 @@ executable HMath-exe
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       HMath
+    , QuickCheck
+    , attoparsec
     , base >=4.7 && <5
+    , containers
+    , hspec
+    , optparse-applicative
+    , text
   default-language: Haskell2010
 
 test-suite HMath-test
@@ -63,5 +79,11 @@ test-suite HMath-test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       HMath
+    , QuickCheck
+    , attoparsec
     , base >=4.7 && <5
+    , containers
+    , hspec
+    , optparse-applicative
+    , text
   default-language: Haskell2010

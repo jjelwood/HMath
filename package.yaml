@@ -21,6 +21,12 @@ description:         Please see the README on GitHub at <https://github.com/jjel
 
 dependencies:
 - base >= 4.7 && < 5
+- optparse-applicative
+- attoparsec
+- text
+- containers
+- hspec
+- QuickCheck
 
 ghc-options:
 - -Wall
@@ -35,6 +41,8 @@ ghc-options:
 
 library:
   source-dirs: src
+  default-extensions:
+  - OverloadedStrings
 
 executables:
   HMath-exe:

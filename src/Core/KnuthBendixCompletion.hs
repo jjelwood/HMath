@@ -20,4 +20,3 @@
 
 module Core.KnuthBendixCompletion where
 
-import Core.Types

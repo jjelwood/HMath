@@ -1,15 +1,19 @@
-module Core.Parser where
+module Core.Parser (
+  exprParser
+) where
 
 import Data.Attoparsec.Text
 import qualified Data.Bifunctor
 import Core.Types (Expr(..))
-import Debug.Trace
+import Control.Monad.Trans.State
+import Control.Monad.Trans.Class
 
 data Token = AddT
            | SubtractT
            | MultiplyT
            | DivideT
            | PowerT
+           | NegT
            | OpenParenT
            | CloseParenT
            | PiT
@@ -26,34 +30,53 @@ data Token = AddT
            | NumberT Double
            deriving (Show, Eq)
 
+type PrevToken = Maybe Token
+type StatefulParser = StateT PrevToken Parser
+
 exprParser :: Parser Expr
-exprParser = evalPostfix . traceShowId . opPrecParse <$> tokensParser
+exprParser = evalStateT exprParserS Nothing
 
-tokensParser :: Parser [Token]
-tokensParser = tokenParser `sepBy` skipSpace
+exprParserS :: StatefulParser Expr
+exprParserS = evalPostfix . opPrecParse <$> tokensParser
 
-tokenParser :: Parser Token
-tokenParser = choice
-  [ string "+" >> return AddT
-  , string "-" >> return SubtractT
-  , string "*" >> return MultiplyT
-  , string "/" >> return DivideT
-  , string "^" >> return PowerT
-  , string "(" >> return OpenParenT
-  , string ")" >> return CloseParenT
-  , string "pi" >> return PiT
-  , string "e" >> return ET
-  , string "Sin" >> return SinT
-  , string "Cos" >> return CosT
-  , string "Tan" >> return TanT
-  , string "Log" >> return LogT
-  , string "Ln" >> return LnT
-  , string "Sqrt" >> return SqrtT
-  , string "Abs" >> return AbsT
-  , string "," >> return CommaT
-  , NumberT <$> double
-  , VariableT <$> many1 letter
-  ]
+tokensParser :: StatefulParser [Token]
+tokensParser = tokenParser `sepBy` lift skipSpace
+
+tokenParser :: StatefulParser Token
+tokenParser = do
+  nextToken <- lift $ choice
+    [ string "+" >> return AddT
+    , string "-" >> return SubtractT
+    , string "*" >> return MultiplyT
+    , string "/" >> return DivideT
+    , string "^" >> return PowerT
+    , string "(" >> return OpenParenT
+    , string ")" >> return CloseParenT
+    , string "pi" >> return PiT
+    , string "e" >> return ET
+    , string "Sin" >> return SinT
+    , string "Cos" >> return CosT
+    , string "Tan" >> return TanT
+    , string "Log" >> return LogT
+    , string "Ln" >> return LnT
+    , string "Sqrt" >> return SqrtT
+    , string "Abs" >> return AbsT
+    , string "," >> return CommaT
+    , NumberT <$> double
+    , VariableT <$> many1 letter
+    ]
+  prevToken <- get
+  put $ Just nextToken
+  if nextToken /= SubtractT
+    then return nextToken
+    else case ttype <$> prevToken of
+      Just OpenParen -> return NegT
+      Just Comma -> return NegT
+      Just Operator -> return NegT
+      Just Function -> return NegT
+      Nothing -> return NegT
+      _ -> return SubtractT
+      
 
 data TokenType = Operator
               | Function
@@ -69,6 +92,7 @@ ttype SubtractT = Operator
 ttype MultiplyT = Operator
 ttype DivideT = Operator
 ttype PowerT = Operator
+ttype NegT = Function
 ttype OpenParenT = OpenParen
 ttype CloseParenT = CloseParen
 ttype PiT = Numlike
@@ -99,7 +123,7 @@ associativity t | ttype t == Operator = if precedence t == 3 then R else L
                 | otherwise = error "Not an operator"
 
 opPrecParse :: [Token] -> [Token]
-opPrecParse [] = undefined -- TODO: what happens when there are no tokens?
+opPrecParse [] = [] -- TODO: what happens when there are no tokens?
 opPrecParse ts =
   reverse $
   uncurry (foldl popOp) $
@@ -150,13 +174,22 @@ opPrecParse ts =
 
 evalPostfix :: [Token] -> Expr
 evalPostfix [] = error "No tokens"
-evalPostfix (NumberT x:ts) = head $ foldl evalTokenOnStack [Number x] ts
-evalPostfix (VariableT x:ts) = head $ foldl evalTokenOnStack [Symbol x] ts
-evalPostfix _ = error "Invalid postfix expression"
+evalPostfix (t:ts) | ttype t == Numlike = head $ foldl evalTokenOnStack [evalNumlike t] ts
+                   | otherwise = error "Invalid postfix expression"
+
+evalNumlike :: Token -> Expr
+evalNumlike (NumberT n) = Number n
+evalNumlike (VariableT v) = Symbol v
+evalNumlike PiT = Pi
+evalNumlike ET = E
+evalNumlike t | ttype t /= Numlike = error "Not a Numlike token"
+              | otherwise = error "Numlike token conversion has not been implemented"
 
 evalTokenOnStack :: [Expr] -> Token -> [Expr]
 evalTokenOnStack stack (NumberT n) = Number n:stack
 evalTokenOnStack stack (VariableT v) = Symbol v:stack
+evalTokenOnStack stack PiT = Pi:stack
+evalTokenOnStack stack ET = E:stack
 evalTokenOnStack (a:b:stack) AddT = Add b a:stack
 evalTokenOnStack (a:b:stack) SubtractT = Sub b a:stack
 evalTokenOnStack (a:b:stack) MultiplyT = Mul b a:stack
@@ -169,7 +202,8 @@ evalTokenOnStack (a:b:stack) LogT = Log b a:stack
 evalTokenOnStack (a:stack) LnT = Ln a:stack
 evalTokenOnStack (a:stack) SqrtT = Sqrt a:stack
 evalTokenOnStack (a:stack) AbsT = Abs a:stack
-evalTokenOnStack stack _ = stack
+evalTokenOnStack (a:stack) NegT = Neg a:stack
+evalTokenOnStack _ _ = error "Invalid token"
 
 iterateWhile :: (a -> Bool) -> (a -> a) -> a -> a
 iterateWhile cond step x = if cond x then iterateWhile cond step (step x) else x

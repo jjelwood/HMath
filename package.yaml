@@ -27,6 +27,7 @@ dependencies:
 - containers
 - hspec
 - QuickCheck
+- transformers
 
 ghc-options:
 - -Wall

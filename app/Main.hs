@@ -1,7 +1,8 @@
 module Main (main) where
 
-import Core.Types
-import Core.Parser
+import Core.Parser ( exprParser )
+import Core.Rewrite ( simplify )
+import Core.PrettyPrint ( prettyPrint )
 import Options.Applicative hiding (Parser)
 import qualified Options.Applicative as O
 import qualified Data.Text as T
@@ -46,10 +47,11 @@ optsParserInfo = info (optionsParser <**> helper)
 
 -- Use the parsed options to run the program
 runWithOptions :: Options -> IO ()
-runWithOptions (Options input verbose) = do
-  putStrLn $ "Evaluating input: " ++ input
-  putStrLn $ show $ runParser input
+runWithOptions (Options input _) = do
+  putStrLn $ "Input: " ++ input
+  print (runParser input)
 
 -- Run the parser on the input
-runParser :: String -> Either String Expr
-runParser input = A.parseOnly exprParser (T.pack input)
+runParser :: String -> Either String String
+runParser input = A.parseOnly (prettyPrint . simplify <$> exprParser) (T.pack input)
+

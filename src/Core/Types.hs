@@ -1,7 +1,6 @@
 module Core.Types (
     Expr(..),
-    Equation(..),
-    Manipulate(..)
+    Equation(..)
 ) where
 
 data Expr = Number Double
@@ -22,11 +21,14 @@ data Expr = Number Double
             | Atan Expr
             | Sinh Expr
             | Cosh Expr
+            | Tanh Expr
             | Asinh Expr
             | Acosh Expr
             | Atanh Expr 
             | Ln Expr
             | Tan Expr
+            | Pi
+            | E
             deriving (Show, Eq)
 
 -- Exprs can have their complexity compared by a number of metrics
@@ -51,29 +53,19 @@ complexity (Acos a) = 1 + complexity a
 complexity (Atan a) = 1 + complexity a
 complexity (Sinh a) = 1 + complexity a
 complexity (Cosh a) = 1 + complexity a
+complexity (Tanh a) = 1 + complexity a
 complexity (Asinh a) = 1 + complexity a
 complexity (Acosh a) = 1 + complexity a
 complexity (Atanh a) = 1 + complexity a
+complexity (Ln a) = 1 + complexity a
+complexity (Tan a) = 1 + complexity a
+complexity (Abs a) = 1 + complexity a
+complexity (Sqrt a) = 1 + complexity a
+complexity Pi = 1
+complexity E = 1
 
 data Equation = Equation Expr Expr
                 deriving (Show, Eq)
-
-newtype Manipulate a = Manipulate { doManipulate :: Expr -> Either String (Expr, a) }
-
-instance Functor Manipulate where
-  fmap f (Manipulate manip) = Manipulate $ \expr -> fmap (fmap f) (manip expr)
-
-instance Applicative Manipulate where
-  pure x = Manipulate $ \expr -> Right (expr, x)
-  Manipulate f <*> Manipulate x = Manipulate $ \expr -> do
-    (expr', f') <- f expr
-    (expr'', x') <- x expr'
-    return (expr'', f' x')
-
-instance Monad Manipulate where
-  Manipulate x >>= f = Manipulate $ \expr -> do
-    (expr', a) <- x expr
-    doManipulate (f a) expr'
 
 instance Num Expr where
     (+) = Add

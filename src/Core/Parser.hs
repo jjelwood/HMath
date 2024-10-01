@@ -3,10 +3,12 @@ module Core.Parser (
 ) where
 
 import Data.Attoparsec.Text
-import qualified Data.Bifunctor
 import Core.Types (Expr(..))
 import Control.Monad.Trans.State
 import Control.Monad.Trans.Class
+import Data.Bifunctor (Bifunctor(second))
+import Debug.Trace (traceShowId)
+import qualified Data.Map as M
 
 data Token = AddT
            | SubtractT
@@ -33,10 +35,10 @@ data Token = AddT
 type PrevToken = Maybe Token
 type StatefulParser = StateT PrevToken Parser
 
-exprParser :: Parser Expr
+exprParser :: Parser (Either String Expr)
 exprParser = evalStateT exprParserS Nothing
 
-exprParserS :: StatefulParser Expr
+exprParserS :: StatefulParser (Either String Expr)
 exprParserS = evalPostfix . opPrecParse <$> tokensParser
 
 tokensParser :: StatefulParser [Token]
@@ -54,13 +56,13 @@ tokenParser = do
     , string ")" >> return CloseParenT
     , string "pi" >> return PiT
     , string "e" >> return ET
-    , string "Sin" >> return SinT
-    , string "Cos" >> return CosT
-    , string "Tan" >> return TanT
-    , string "Log" >> return LogT
-    , string "Ln" >> return LnT
-    , string "Sqrt" >> return SqrtT
-    , string "Abs" >> return AbsT
+    , string "sin" >> return SinT
+    , string "cos" >> return CosT
+    , string "tan" >> return TanT
+    , string "log" >> return LogT
+    , string "ln" >> return LnT
+    , string "sqrt" >> return SqrtT
+    , string "abs" >> return AbsT
     , string "," >> return CommaT
     , NumberT <$> double
     , VariableT <$> many1 letter
@@ -122,60 +124,76 @@ associativity :: Token -> Dir
 associativity t | ttype t == Operator = if precedence t == 3 then R else L
                 | otherwise = error "Not an operator"
 
-opPrecParse :: [Token] -> [Token]
-opPrecParse [] = [] -- TODO: what happens when there are no tokens?
+opPrecParse :: [Token] -> Either String [Token]
+opPrecParse [] = Left "No input given"
 opPrecParse ts =
-  reverse $
-  uncurry (foldl popOp) $
-  foldl readToken ([], []) ts
-  where
-    moveFromOpsToOutput (output', ops') = (head ops':output', tail ops')
-    isNotLeftParen (_, ops') = (/= OpenParenT) $ head ops'
-    isNonEmptyandNotLeftParen (_, ops') = not (null ops') && head ops' /= OpenParenT
-    isLowerPrecedence token (_, op:_') = precedence token < precedence op || precedence token == precedence op && associativity token == L
-    isLowerPrecedence _ _ = False
-    popOp output' op = case op of
-      OpenParenT -> error "Mismatched parentheses"
-      _ -> op:output'
-    readToken (output, ops) token = case ttype token of
-      Numlike -> (token:output, ops)
-      Function -> (output, token:ops)
-      Operator -> -- Incomplete - need to handle associativity and adding o1
-         Data.Bifunctor.second (token :) $
-         iterateWhile ((&&) <$> isNonEmptyandNotLeftParen <*> isLowerPrecedence token)  moveFromOpsToOutput (output, ops)
-      -- while (
-      --      there is an operator o2 at the top of the operator stack which is not a left parenthesis, 
-      --      and (o2 has greater precedence than o1 or (o1 and o2 have the same precedence and o1 is left-associative))
-      --  ):
-      --      pop o2 from the operator stack into the output queue
-      --  push o1 onto the operator stack
-      Comma ->
-        iterateWhile isNotLeftParen moveFromOpsToOutput (output, ops)
-      -- while the operator at the top of the operator stack is not a left parenthesis:
-      --       pop the operator from the operator stack into the output queue
-      OpenParen -> (output, token:ops)
-      CloseParen -> case iterateWhile isNotLeftParen step (output, ops) of
-        (output', OpenParenT:ops') -> if not (null ops') && ttype (head ops') == Function
-          then (head ops':output', tail ops')
-          else (output', ops')
-        _ -> error "Expected open parenthesis"
-        where
-          step (output', ops') = case ops' of
-            [] -> error "Mismatched parentheses"
-            (op:ops'') -> (op:output', ops'')
-      -- while the operator at the top of the operator stack is not a left parenthesis:
-      --      {assert the operator stack is not empty}
-      --      /* If the stack runs out without finding a left parenthesis, then there are mismatched parentheses. */
-      --      pop the operator from the operator stack into the output queue
-      --  {assert there is a left parenthesis at the top of the operator stack}
-      --  pop the left parenthesis from the operator stack and discard it
-      --  if there is a function token at the top of the operator stack, then:
-      --      pop the function from the operator stack into the output queue
+  second (reverse . uncurry (foldl popOp)) $
+  foldl readToken (Right ([], [])) ts
 
-evalPostfix :: [Token] -> Expr
-evalPostfix [] = error "No tokens"
-evalPostfix (t:ts) | ttype t == Numlike = head $ foldl evalTokenOnStack [evalNumlike t] ts
-                   | otherwise = error "Invalid postfix expression"
+moveFromOpsToOutput :: ([a], [a]) -> ([a], [a])
+moveFromOpsToOutput (output', ops') = (head ops':output', tail ops')
+
+isNotLeftParen :: (a, [Token]) -> Bool
+isNotLeftParen (_, ops') = (/= OpenParenT) $ head ops'
+
+isNonEmptyandNotLeftParen :: (a, [Token]) -> Bool
+isNonEmptyandNotLeftParen (_, ops') = not (null ops') && head ops' /= OpenParenT
+
+isLowerPrecedence :: Token -> (a, [Token]) -> Bool
+isLowerPrecedence token (_, op:_) = precedence token < precedence op || precedence token == precedence op && associativity token == L
+isLowerPrecedence _ _ = False
+
+popOp :: [Token] -> Token -> [Token]
+popOp output' op = case op of
+  OpenParenT -> error "Mismatched parentheses"
+  _ -> op:output'
+
+readToken :: Either String ([Token], [Token]) -> Token -> Either String ([Token], [Token])
+readToken (Left e) _ = Left e
+readToken (Right (output, ops)) token = case ttype token of
+  Numlike -> Right (token:output, ops)
+  Function -> Right (output, token:ops)
+  Operator ->
+      Right $ Data.Bifunctor.second (token :) $
+      iterateWhile ((&&) <$> isNonEmptyandNotLeftParen <*> isLowerPrecedence token) moveFromOpsToOutput (output, ops)
+  -- while (
+  --      there is an operator o2 at the top of the operator stack which is not a left parenthesis, 
+  --      and (o2 has greater precedence than o1 or (o1 and o2 have the same precedence and o1 is left-associative))
+  --  ):
+  --      pop o2 from the operator stack into the output queue
+  --  push o1 onto the operator stack
+  Comma ->
+    Right $ iterateWhile isNotLeftParen moveFromOpsToOutput (output, ops)
+  -- while the operator at the top of the operator stack is not a left parenthesis:
+  --       pop the operator from the operator stack into the output queue
+  OpenParen -> Right (output, token:ops)
+  CloseParen -> case iterateWhile (applyPredicateRight isNotLeftParen) step (Right (output, ops)) of
+    (Right (output', OpenParenT:ops')) -> Right $ if not (null ops') && ttype (head ops') == Function
+      then (head ops':output', tail ops')
+      else (output', ops')
+    _ -> Left "Expected open parenthesis"
+    where
+      applyPredicateRight _ (Left _) = True
+      applyPredicateRight p (Right value) = p value
+      step (Left e) = Left e
+      step (Right (output', ops')) = case ops' of
+        [] -> Left "Mismatched parentheses"
+        (op:ops'') -> Right (op:output', ops'')
+  -- while the operator at the top of the operator stack is not a left parenthesis:
+  --      {assert the operator stack is not empty}
+  --      /* If the stack runs out without finding a left parenthesis, then there are mismatched parentheses. */
+  --      pop the operator from the operator stack into the output queue
+  --  {assert there is a left parenthesis at the top of the operator stack}
+  --  pop the left parenthesis from the operator stack and discard it
+  --  if there is a function token at the top of the operator stack, then:
+  --      pop the function from the operator stack into the output queue
+
+evalPostfix :: Either String [Token] -> Either String Expr
+evalPostfix (Left e) = Left e
+evalPostfix (Right []) = Left "No tokens"
+evalPostfix (Right (t:ts)) 
+  | ttype t == Numlike = Right $ head $ foldl evalTokenOnStack [evalNumlike t] ts
+  | otherwise = Left "Invalid expression"
 
 evalNumlike :: Token -> Expr
 evalNumlike (NumberT n) = Number n
@@ -190,10 +208,10 @@ evalTokenOnStack stack (NumberT n) = Number n:stack
 evalTokenOnStack stack (VariableT v) = Symbol v:stack
 evalTokenOnStack stack PiT = Pi:stack
 evalTokenOnStack stack ET = E:stack
-evalTokenOnStack (a:b:stack) AddT = Add b a:stack
-evalTokenOnStack (a:b:stack) SubtractT = Sub b a:stack
-evalTokenOnStack (a:b:stack) MultiplyT = Mul b a:stack
-evalTokenOnStack (a:b:stack) DivideT = Div b a:stack
+evalTokenOnStack (a:b:stack) AddT = Sum [b,a]:stack
+evalTokenOnStack (a:b:stack) SubtractT = Sum [b, -a]:stack
+evalTokenOnStack (a:b:stack) MultiplyT = Prod [b, a]:stack
+evalTokenOnStack (a:b:stack) DivideT = Prod [b, Pow a $ Number (-1)]:stack
 evalTokenOnStack (a:b:stack) PowerT = Pow b a:stack
 evalTokenOnStack (a:stack) SinT = Sin a:stack
 evalTokenOnStack (a:stack) CosT = Cos a:stack

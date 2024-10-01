@@ -1,57 +1,48 @@
 module Main (main) where
 
 import Core.Parser ( exprParser )
-import Core.Rewrite ( simplify )
+import Core.Rewrite ( simplifyWith )
 import Core.PrettyPrint ( prettyPrint )
-import Options.Applicative hiding (Parser)
-import qualified Options.Applicative as O
 import qualified Data.Text as T
 import qualified Data.Attoparsec.Text as A
-
-data Options = Options
-  { getInput   :: String  -- Input expression or file
-  , verbose :: Bool    -- Verbosity flag
-  } deriving Show
-
-inputParser :: O.Parser String
-inputParser = strOption
-  ( long "input"
-  <> short 'i'
-  <> metavar "INPUT"
-  <> help "The input expression to be evaluated" )
-
--- Parser for the verbosity flag
-verboseParser :: O.Parser Bool
-verboseParser = switch
-  ( long "verbose"
-  <> short 'v'
-  <> help "Show steps taken during computation" )
-
--- Combine the parsers into one for Options
-optionsParser :: O.Parser Options
-optionsParser = Options
-  <$> inputParser
-  <*> verboseParser
+import Data.Map ( Map )
+import qualified Data.Map as M
+import Core.Types (Expr)
+import Control.Monad (forever)
+import System.IO ( hFlush, stdout )
+import Debug.Trace ( traceShowId )
 
 main :: IO ()
 main = do
-  opts <- execParser optsParserInfo
-  runWithOptions opts
+  let initialMap = M.empty
+  runShell initialMap
 
--- Wrap the parser with a description
-optsParserInfo :: O.ParserInfo Options
-optsParserInfo = info (optionsParser <**> helper)
-  ( fullDesc
-  <> progDesc "Run HMath with the given input"
-  <> header "HMath CLI - a simple interface to interact with the solver" )
+runShell :: Map String Expr -> IO ()
+runShell vars = forever $ do
+  putStr "HMath> "
+  hFlush stdout
+  input <- getLine
+  if '=' `elem` input
+    then do
+      let (var, expr) = break (== '=') input
+      case runParser $ trimL $ tail expr of
+        Left err -> putStrLn err
+        Right (Left err) -> putStrLn err
+        Right (Right expr') -> runShell (M.insert (trimR var) expr' vars)
+    else case runParser input of
+      Left err -> putStrLn err
+      Right (Left err) -> putStrLn err
+      Right (Right expr) -> do
+        -- putStrLn $ prettyPrint expr
+        putStrLn $ prettyPrint $ simplifyWith (traceShowId vars) expr
 
--- Use the parsed options to run the program
-runWithOptions :: Options -> IO ()
-runWithOptions (Options input _) = do
-  putStrLn $ "Input: " ++ input
-  print (runParser input)
+trimR :: String -> String
+trimR = reverse . dropWhile (== ' ') . reverse
+
+trimL :: String -> String
+trimL = dropWhile (== ' ')
+
 
 -- Run the parser on the input
-runParser :: String -> Either String String
-runParser input = A.parseOnly (prettyPrint . simplify <$> exprParser) (T.pack input)
-
+runParser :: String -> Either String (Either String Expr)
+runParser = A.parseOnly exprParser . T.pack

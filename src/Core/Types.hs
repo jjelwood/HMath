@@ -5,10 +5,8 @@ module Core.Types (
 
 data Expr = Number Double
             | Symbol String
-            | Add Expr Expr
-            | Sub Expr Expr
-            | Mul Expr Expr
-            | Div Expr Expr
+            | Sum [Expr]
+            | Prod [Expr]
             | Neg Expr
             | Abs Expr
             | Pow Expr Expr
@@ -18,13 +16,7 @@ data Expr = Number Double
             | Sqrt Expr
             | Asin Expr
             | Acos Expr
-            | Atan Expr
-            | Sinh Expr
-            | Cosh Expr
-            | Tanh Expr
-            | Asinh Expr
-            | Acosh Expr
-            | Atanh Expr 
+            | Atan Expr 
             | Ln Expr
             | Tan Expr
             | Pi
@@ -39,10 +31,8 @@ instance Ord Expr where
 complexity :: Expr -> Int
 complexity (Number _) = 1
 complexity (Symbol _) = 1
-complexity (Add a b) = 1 + complexity a + complexity b
-complexity (Sub a b) = 1 + complexity a + complexity b
-complexity (Mul a b) = 1 + complexity a + complexity b
-complexity (Div a b) = 1 + complexity a + complexity b
+complexity (Sum as) = sum (map (\term -> complexity term + 1) as) - 1
+complexity (Prod as) = sum (map (\term -> complexity term + 1) as) - 1
 complexity (Neg a) = 1 + complexity a
 complexity (Pow a b) = 1 + complexity a + complexity b
 complexity (Log a b) = 1 + complexity a + complexity b
@@ -51,12 +41,6 @@ complexity (Cos a) = 1 + complexity a
 complexity (Asin a) = 1 + complexity a
 complexity (Acos a) = 1 + complexity a
 complexity (Atan a) = 1 + complexity a
-complexity (Sinh a) = 1 + complexity a
-complexity (Cosh a) = 1 + complexity a
-complexity (Tanh a) = 1 + complexity a
-complexity (Asinh a) = 1 + complexity a
-complexity (Acosh a) = 1 + complexity a
-complexity (Atanh a) = 1 + complexity a
 complexity (Ln a) = 1 + complexity a
 complexity (Tan a) = 1 + complexity a
 complexity (Abs a) = 1 + complexity a
@@ -68,16 +52,16 @@ data Equation = Equation Expr Expr
                 deriving (Show, Eq)
 
 instance Num Expr where
-    (+) = Add
-    (-) = Sub
-    (*) = Mul
+    a + b = Sum [a, b]
+    a - b = Sum [a, -b]
+    a * b = Prod [a, b]
     negate = Neg
     abs = Abs
     signum = undefined
     fromInteger = Number . fromInteger
 
 instance Fractional Expr where
-    (/) = Div
+    a / b = Prod [a, Pow b (Number (-1))]
     fromRational = Number . fromRational
 
 instance Floating Expr where 
@@ -89,8 +73,8 @@ instance Floating Expr where
   asin = Asin
   acos = Acos
   atan = Atan
-  sinh = Sinh
-  cosh = Cosh
-  asinh = Asinh
-  acosh = Acosh
-  atanh = Atanh
+  sinh = undefined
+  cosh = undefined
+  asinh = undefined
+  acosh = undefined
+  atanh = undefined

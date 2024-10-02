@@ -65,7 +65,7 @@ executable HMath-exe
     , attoparsec
     , base >=4.7 && <5
     , containers
-    , hspec
+    , HUnit
     , optparse-applicative
     , text
     , transformers
@@ -76,6 +76,7 @@ test-suite HMath-test
   main-is: Spec.hs
   other-modules:
       Paths_HMath
+      ParserSpec
   autogen-modules:
       Paths_HMath
   hs-source-dirs:
@@ -87,7 +88,7 @@ test-suite HMath-test
     , attoparsec
     , base >=4.7 && <5
     , containers
-    , hspec
+    , HUnit
     , optparse-applicative
     , text
     , transformers

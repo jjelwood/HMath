@@ -3,7 +3,8 @@
 module Core.Rewrite (
     eval,
     simplify,
-    simplifyWith
+    simplifyWith,
+    getCoefficient
 ) where
 import Core.Types ( Expr(..) )
 import Data.Map (Map)
@@ -65,12 +66,13 @@ simplifyWith vars s@(Symbol x) = fromMaybe s $ vars M.!? x
 simplifyWith vars (Sum as) = case filter (/= Number 0) $ map (simplifyWith vars) as of
     [] -> Number 0
     [x] -> x
-    xs -> Sum $ nub $ map (\x -> simplifyWith vars $ Prod [Number (fromIntegral $ length $ filter (== x) xs), x]) $ -- combine equal terms
+    -- xs -> Sum $ concatMap (\case {Sum ys -> ys; x -> [x]}) xs
+    xs -> Sum $ combineLikeTerms $ -- combine equal terms -- combine equal terms -- combine equal terms
           concatMap (\case {Sum ys -> ys; x -> [x]}) xs -- pull up nested sums
 simplifyWith vars (Prod as) = case filter (/= Number 1) $ map (simplifyWith vars) as of
     [] -> Number 1
     [x] -> x
-    xs -> Prod $ nub $ map (\x -> simplifyWith vars $ Pow x (Number (fromIntegral $ length $ filter (== x) xs))) $ -- combine like factors
+    xs -> Prod $ nub $ map (\x -> simplifyWith vars $ Pow x (Number (fromIntegral $ length $ filter (== x) xs))) $ -- combine like factors -- combine like factors -- combine like factors
           concatMap (\case {Prod ys -> ys; x -> [x]}) xs -- pull up nested products
 simplifyWith vars (Neg a) = case simplifyWith vars a of
     Number x -> Number (-x)
@@ -120,6 +122,23 @@ simplifyWith vars (Atan a) = case simplifyWith vars a of
     x -> Atan x
 simplifyWith _ Pi = Pi
 simplifyWith _ E = E
+
+-- Separate the coefficient from the rest of the expression, returns the rest of the expression as a product
+getCoefficient :: Expr -> (Double, Expr)
+getCoefficient (Prod as)  = (product $ map (\case {Number x -> x; _ -> 1}) as, Prod $ filter (\case {Number _ -> False; _ -> True}) as)
+getCoefficient x = (1, Prod [x])
+
+-- getExponent :: Expr -> Int
+-- getExponent = sum $ map (\case {Pow _ (Number x) -> round x; _ -> 0}) as
+
+combineLikeTerms :: [Expr] -> [Expr]
+combineLikeTerms ts = map (\case {(c, Prod ts') -> Prod (Number c:ts'); _ -> error "Term was expected to be a product"}) $ foldl addTerm [] $ map getCoefficient ts
+  where
+    addTerm terms (coefficient, term) = case terms of
+      [] -> [(coefficient, term)]
+      (c, t):rest -> if t == term then (c + coefficient, term):rest else (coefficient, term):terms
+
+-- combineCommonFactors :: [Expr] -> [Expr]
 
 isPerfectSquare :: Double -> Bool
 isPerfectSquare = (==) <$> sqrt <*> (fromIntegral . round . sqrt)

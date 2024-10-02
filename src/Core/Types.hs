@@ -25,8 +25,8 @@ data Expr = Number Double
 
 -- Exprs can have their complexity compared by a number of metrics
 -- for now we'll just use the number of nodes in the tree
-instance Ord Expr where
-  compare a b = compare (complexity a) (complexity b)
+-- instance Ord Expr where
+--   compare a b = compare (complexity a) (complexity b)
 
 complexity :: Expr -> Int
 complexity (Number _) = 1

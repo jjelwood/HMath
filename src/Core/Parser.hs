@@ -220,7 +220,7 @@ evalTokenOnStack (a:b:stack) LogT = Log b a:stack
 evalTokenOnStack (a:stack) LnT = Ln a:stack
 evalTokenOnStack (a:stack) SqrtT = Sqrt a:stack
 evalTokenOnStack (a:stack) AbsT = Abs a:stack
-evalTokenOnStack (a:stack) NegT = Neg a:stack
+evalTokenOnStack (a:stack) NegT = Prod [Number (-1), a]:stack
 evalTokenOnStack _ _ = error "Invalid token"
 
 iterateWhile :: (a -> Bool) -> (a -> a) -> a -> a

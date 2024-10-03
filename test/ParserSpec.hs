@@ -11,16 +11,14 @@ testParse input expected =
     input ~: 
         case runParser input of
             Left err -> assertFailure $ "Parse error: " ++ err
-            Right (Left err) -> assertFailure $ "Parse error: " ++ err
-            Right (Right expr) -> assertEqual "" expected expr
+            Right expr -> assertEqual "" expected expr
 
 testFail :: String -> Test
 testFail input = 
     input ~: 
         case runParser input of
             Left _ -> return ()
-            Right (Left _) -> return ()
-            Right (Right _) -> assertFailure "Expected parse error"
+            Right _ -> assertFailure "Expected parse error"
 
 passList :: Test
 passList = TestList [

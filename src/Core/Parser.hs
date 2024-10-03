@@ -77,7 +77,7 @@ tokenParser = do
       Nothing -> NegT
       _ -> SubtractT
     _ -> nextToken
-      
+
 
 data TokenType = Operator
               | Function
@@ -125,8 +125,8 @@ associativity t | ttype t == Operator = if precedence t == 3 then R else L
 
 opPrecParse :: [Token] -> Either String [Token]
 opPrecParse [] = Left "No input given"
-opPrecParse ts =
-  second (reverse . uncurry (foldl popOp)) $
+opPrecParse ts = flatten $
+  second (\(output, ops) -> second reverse $ foldl popOp (Right output) ops) $
   foldl readToken (Right ([], [])) ts
 
 moveFromOpsToOutput :: ([a], [a]) -> ([a], [a])
@@ -142,10 +142,11 @@ isLowerPrecedence :: Token -> (a, [Token]) -> Bool
 isLowerPrecedence token (_, op:_) = precedence token < precedence op || precedence token == precedence op && associativity token == L
 isLowerPrecedence _ _ = False
 
-popOp :: [Token] -> Token -> [Token]
-popOp output' op = case op of
-  OpenParenT -> error "Mismatched parentheses"
-  _ -> op:output'
+popOp :: Either String [Token] -> Token -> Either String [Token]
+popOp (Right output') op = case op of
+  OpenParenT -> Left "Mismatched parentheses"
+  _ -> Right (op:output')
+popOp (Left e) _ = Left e
 
 readToken :: Either String ([Token], [Token]) -> Token -> Either String ([Token], [Token])
 readToken (Left e) _ = Left e
@@ -190,7 +191,7 @@ readToken (Right (output, ops)) token = case ttype token of
 evalPostfix :: Either String [Token] -> Either String Expr
 evalPostfix (Left e) = Left e
 evalPostfix (Right []) = Left "No tokens"
-evalPostfix (Right (t:ts)) 
+evalPostfix (Right (t:ts))
   | ttype t == Numlike = maybe (Left "Invalid Expression") (Right . head) $ foldl evalTokenOnStack (Just [evalNumlike t]) ts
   | otherwise = Left "Invalid expression"
 
@@ -225,5 +226,10 @@ evalTokenOnStack _ _ = Nothing
 iterateWhile :: (a -> Bool) -> (a -> a) -> a -> a
 iterateWhile cond step x = if cond x then iterateWhile cond step (step x) else x
 
-runParser :: String -> Either String (Either String Expr)
-runParser = parseOnly exprParser . T.pack
+runParser :: String -> Either String Expr
+runParser = flatten . parseOnly exprParser . T.pack
+
+flatten :: Either a (Either a b) -> Either a b
+flatten (Left e) = Left e
+flatten (Right (Left e)) = Left e
+flatten (Right (Right e)) = Right e

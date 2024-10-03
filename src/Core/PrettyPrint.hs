@@ -9,11 +9,11 @@ import Data.List (intercalate)
 prettyPrint :: Expr -> String
 prettyPrint (Number x) = if x == fromIntegral (round x) then show $ round x else show x
 prettyPrint (Symbol x) = x
-prettyPrint e@(Sum as) = intercalate " + " $ map (`bracketIfLowerPrecedence` e) as
-prettyPrint e@(Prod as) = intercalate " * " $ map (`bracketIfLowerPrecedence` e) as
-prettyPrint e@(Abs a) = "|" <> bracketIfLowerPrecedence a e <> "|"
-prettyPrint e@(Pow a b) = bracketIfLowerPrecedence a e <> " ^ " <> bracketIfLowerPrecedence b e
-prettyPrint e@(Log a b) = "log_" <> bracketIfLowerPrecedence a e <> "(" <> prettyPrint b <> ")"
+prettyPrint e@(Sum as) = intercalate " + " $ map (bracketIfLowerPrecedence prettyPrint e) as
+prettyPrint e@(Prod as) = intercalate " * " $ map (bracketIfLowerPrecedence prettyPrint e) as
+prettyPrint (Abs a) = "|" <> prettyPrint a <> "|"
+prettyPrint e@(Pow a b) = bracketIfLowerPrecedence prettyPrint a e <> " ^ " <> bracketIfLowerPrecedence prettyPrint b e
+prettyPrint e@(Log a b) = "log_" <> bracketIfLowerPrecedence prettyPrint a e <> "(" <> prettyPrint b <> ")"
 prettyPrint (Sin a) = "sin(" <> prettyPrint a <> ")"
 prettyPrint (Cos a) = "cos(" <> prettyPrint a <> ")"
 prettyPrint (Sqrt a) = "sqrt(" <> prettyPrint a <> ")"
@@ -25,16 +25,16 @@ prettyPrint (Tan a) = "tan(" <> prettyPrint a <> ")"
 prettyPrint Pi = "pi"
 prettyPrint E = "e"
 
-bracketIfLowerPrecedence :: Expr -> Expr -> String
-bracketIfLowerPrecedence a b = if operatorPrecedence a < operatorPrecedence b then "(" <> prettyPrint a <> ")" else prettyPrint a
+bracketIfLowerPrecedence :: (Expr -> String) -> Expr -> Expr -> String
+bracketIfLowerPrecedence f a b = if operatorPrecedence b < operatorPrecedence a then "(" <> f a <> ")" else f a
 
 prettyPrintLatex :: Expr -> String
 prettyPrintLatex (Number x) = show x
 prettyPrintLatex (Symbol x) = x
-prettyPrintLatex (Sum as) = intercalate " + " $ map (\a -> "(" <> prettyPrintLatex a <> ")") as
-prettyPrintLatex (Prod as) = intercalate " \\cdot " $ map (\a -> "(" <> prettyPrintLatex a <> ")") as
+prettyPrintLatex e@(Sum as) = intercalate " + " $ map (bracketIfLowerPrecedence prettyPrint e) as
+prettyPrintLatex e@(Prod as) = intercalate " \\cdot " $ map (bracketIfLowerPrecedence prettyPrint e) as
 prettyPrintLatex (Abs a) = "\\left|" <> prettyPrintLatex a <> "\\right|"
-prettyPrintLatex (Pow a b) = prettyPrintLatex a <> "^{" <> prettyPrintLatex b <> "}"
+prettyPrintLatex e@(Pow a b) = bracketIfLowerPrecedence prettyPrintLatex e a <> "^{" <> prettyPrintLatex b <> "}"
 prettyPrintLatex (Log a b) = "\\log_{" <> prettyPrintLatex a <> "}\\left(" <> prettyPrintLatex b <> "\\right)"
 prettyPrintLatex (Sin a) = "\\sin\\left(" <> prettyPrintLatex a <> "\\right)"
 prettyPrintLatex (Cos a) = "\\cos\\left(" <> prettyPrintLatex a <> "\\right)"

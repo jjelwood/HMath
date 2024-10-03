@@ -24,12 +24,10 @@ runShell vars = forever $ do
       let (var, expr) = break (== '=') input
       case runParser $ trimL $ tail expr of
         Left err -> putStrLn err
-        Right (Left err) -> putStrLn err
-        Right (Right expr') -> runShell (M.insert (trimR var) expr' vars)
+        Right expr' -> runShell (M.insert (trimR var) expr' vars)
     else case runParser input of
       Left err -> putStrLn err
-      Right (Left err) -> putStrLn err
-      Right (Right expr) -> do
+      Right expr -> do
         -- print expr
         -- print $ simplifyWith vars expr
         -- putStrLn $ prettyPrint expr

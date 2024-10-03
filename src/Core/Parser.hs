@@ -191,7 +191,7 @@ evalPostfix :: Either String [Token] -> Either String Expr
 evalPostfix (Left e) = Left e
 evalPostfix (Right []) = Left "No tokens"
 evalPostfix (Right (t:ts)) 
-  | ttype t == Numlike = Right $ head $ foldl evalTokenOnStack [evalNumlike t] ts
+  | ttype t == Numlike = maybe (Left "Invalid Expression") (Right . head) $ foldl evalTokenOnStack (Just [evalNumlike t]) ts
   | otherwise = Left "Invalid expression"
 
 evalNumlike :: Token -> Expr
@@ -202,25 +202,25 @@ evalNumlike ET = E
 evalNumlike t | ttype t /= Numlike = error "Not a Numlike token"
               | otherwise = error "Numlike token conversion has not been implemented"
 
-evalTokenOnStack :: [Expr] -> Token -> [Expr]
-evalTokenOnStack stack (NumberT n) = Number n:stack
-evalTokenOnStack stack (VariableT v) = Symbol v:stack
-evalTokenOnStack stack PiT = Pi:stack
-evalTokenOnStack stack ET = E:stack
-evalTokenOnStack (a:b:stack) AddT = Sum [b,a]:stack
-evalTokenOnStack (a:b:stack) SubtractT = Sum [b, -a]:stack
-evalTokenOnStack (a:b:stack) MultiplyT = Prod [b, a]:stack
-evalTokenOnStack (a:b:stack) DivideT = Prod [b, Pow a $ Number (-1)]:stack
-evalTokenOnStack (a:b:stack) PowerT = Pow b a:stack
-evalTokenOnStack (a:stack) SinT = Sin a:stack
-evalTokenOnStack (a:stack) CosT = Cos a:stack
-evalTokenOnStack (a:stack) TanT = Tan a:stack
-evalTokenOnStack (a:b:stack) LogT = Log b a:stack
-evalTokenOnStack (a:stack) LnT = Ln a:stack
-evalTokenOnStack (a:stack) SqrtT = Sqrt a:stack
-evalTokenOnStack (a:stack) AbsT = Abs a:stack
-evalTokenOnStack (a:stack) NegT = Prod [Number (-1), a]:stack
-evalTokenOnStack _ _ = error "Invalid token"
+evalTokenOnStack :: Maybe [Expr] -> Token -> Maybe [Expr]
+evalTokenOnStack (Just stack) (NumberT n) = Just $ Number n:stack
+evalTokenOnStack (Just stack) (VariableT v) = Just $ Symbol v:stack
+evalTokenOnStack (Just stack) PiT = Just $ Pi:stack
+evalTokenOnStack (Just stack) ET = Just $ E:stack
+evalTokenOnStack (Just (a:b:stack)) AddT = Just $ Sum [b,a]:stack
+evalTokenOnStack (Just (a:b:stack)) SubtractT = Just $ Sum [b, -a]:stack
+evalTokenOnStack (Just (a:b:stack)) MultiplyT = Just $ Prod [b, a]:stack
+evalTokenOnStack (Just (a:b:stack)) DivideT = Just $ Prod [b, Pow a $ Number (-1)]:stack
+evalTokenOnStack (Just (a:b:stack)) PowerT = Just $ Pow b a:stack
+evalTokenOnStack (Just (a:b:stack)) LogT = Just $ Log b a:stack
+evalTokenOnStack (Just (a:stack)) SinT = Just $ Sin a:stack
+evalTokenOnStack (Just (a:stack)) CosT = Just $ Cos a:stack
+evalTokenOnStack (Just (a:stack)) TanT = Just $ Tan a:stack
+evalTokenOnStack (Just (a:stack)) LnT = Just $ Ln a:stack
+evalTokenOnStack (Just (a:stack)) SqrtT = Just $ Sqrt a:stack
+evalTokenOnStack (Just (a:stack)) AbsT = Just $ Abs a:stack
+evalTokenOnStack (Just (a:stack)) NegT = Just $ Prod [Number (-1), a]:stack
+evalTokenOnStack _ _ = Nothing
 
 iterateWhile :: (a -> Bool) -> (a -> a) -> a -> a
 iterateWhile cond step x = if cond x then iterateWhile cond step (step x) else x

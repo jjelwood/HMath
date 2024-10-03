@@ -7,7 +7,7 @@ import Core.Types ( Expr(..), operatorPrecedence )
 import Data.List (intercalate)
 
 prettyPrint :: Expr -> String
-prettyPrint (Number x) = show x
+prettyPrint (Number x) = if x == fromIntegral (round x) then show $ round x else show x
 prettyPrint (Symbol x) = x
 prettyPrint e@(Sum as) = intercalate " + " $ map (`bracketIfLowerPrecedence` e) as
 prettyPrint e@(Prod as) = intercalate " * " $ map (`bracketIfLowerPrecedence` e) as

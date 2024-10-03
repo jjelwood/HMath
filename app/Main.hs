@@ -30,9 +30,9 @@ runShell vars = forever $ do
       Left err -> putStrLn err
       Right (Left err) -> putStrLn err
       Right (Right expr) -> do
-        print expr
-        print $ simplifyWith vars expr
-        putStrLn $ prettyPrint expr
+        -- print expr
+        -- print $ simplifyWith vars expr
+        -- putStrLn $ prettyPrint expr
         putStrLn $ prettyPrint $ simplifyWith vars expr
 
 trimR :: String -> String

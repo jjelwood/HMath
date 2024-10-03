@@ -13,10 +13,6 @@
 -- - Order of complexity
 -- KB needs to know how to compare the complexity of two expressions. This isn't a formal
 -- definition and can be implemented in many ways. It can be though of as the 'length' of the expression.
--- 
--- 
 
-
-
-module Core.KnuthBendixCompletion where
+module Core.KnuthBendixCompletion () where
 

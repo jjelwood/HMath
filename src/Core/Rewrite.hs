@@ -8,7 +8,7 @@ import Core.Types ( Expr(..) )
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Maybe ( fromMaybe )
-import Data.List ( sort, sortBy )
+import Data.List ( sort )
 
 eval :: Expr -> Expr
 eval e = case e of

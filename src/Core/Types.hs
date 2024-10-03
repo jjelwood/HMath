@@ -1,6 +1,7 @@
 module Core.Types (
     Expr(..),
-    Equation(..)
+    Equation(..),
+    operatorPrecedence
 ) where
 
 data Expr = Number Double
@@ -85,6 +86,17 @@ operatorOrdering (Ln _) = 13
 operatorOrdering (Tan _) = 14
 operatorOrdering (Abs _) = 15
 operatorOrdering (Sqrt _) = 16
+
+operatorPrecedence :: Expr -> Int
+operatorPrecedence (Sum _) = 1
+operatorPrecedence (Prod _) = 2
+operatorPrecedence (Pow _ _) = 3
+-- operatorPrecedence (Number _) = 100
+-- operatorPrecedence (Symbol _) = 100
+-- operatorPrecedence E = 100
+-- operatorPrecedence Pi = 100
+operatorPrecedence _ = 100
+
 
 data Equation = Equation Expr Expr
                 deriving (Show, Eq)

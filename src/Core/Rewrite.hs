@@ -184,7 +184,8 @@ combineLikeTerms ts = case filter (/= Number 0) $
                            map getCoefficient ts) of
   [] -> Number 0
   [x] -> x
-  xs -> Sum $ sortBy (flip compare) xs
+  xs -> Sum $ sort xs
+  -- xs -> Sum $ sortBy (flip compare) xs
   where
     addTerm [] (coefficient, term) = [(coefficient, term)]
     addTerm ((c, t):rest) (coefficient, term)

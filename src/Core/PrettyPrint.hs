@@ -3,17 +3,17 @@ module Core.PrettyPrint (
     prettyPrintLatex
 ) where
 
-import Core.Types ( Expr(..) )
+import Core.Types ( Expr(..), operatorPrecedence )
 import Data.List (intercalate)
 
 prettyPrint :: Expr -> String
 prettyPrint (Number x) = show x
 prettyPrint (Symbol x) = x
-prettyPrint (Sum as) = intercalate " + " $ map (\a -> "(" <> prettyPrint a <> ")") as
-prettyPrint (Prod as) = intercalate " * " $ map (\a -> "(" <> prettyPrint a <> ")") as
-prettyPrint (Abs a) = "|" <> prettyPrint a <> "|"
-prettyPrint (Pow a b) = prettyPrint a <> " ^ " <> prettyPrint b
-prettyPrint (Log a b) = "log_" <> prettyPrint a <> "(" <> prettyPrint b <> ")"
+prettyPrint e@(Sum as) = intercalate " + " $ map (`bracketIfLowerPrecedence` e) as
+prettyPrint e@(Prod as) = intercalate " * " $ map (`bracketIfLowerPrecedence` e) as
+prettyPrint e@(Abs a) = "|" <> bracketIfLowerPrecedence a e <> "|"
+prettyPrint e@(Pow a b) = bracketIfLowerPrecedence a e <> " ^ " <> bracketIfLowerPrecedence b e
+prettyPrint e@(Log a b) = "log_" <> bracketIfLowerPrecedence a e <> "(" <> prettyPrint b <> ")"
 prettyPrint (Sin a) = "sin(" <> prettyPrint a <> ")"
 prettyPrint (Cos a) = "cos(" <> prettyPrint a <> ")"
 prettyPrint (Sqrt a) = "sqrt(" <> prettyPrint a <> ")"
@@ -24,6 +24,9 @@ prettyPrint (Ln a) = "ln(" <> prettyPrint a <> ")"
 prettyPrint (Tan a) = "tan(" <> prettyPrint a <> ")"
 prettyPrint Pi = "pi"
 prettyPrint E = "e"
+
+bracketIfLowerPrecedence :: Expr -> Expr -> String
+bracketIfLowerPrecedence a b = if operatorPrecedence a < operatorPrecedence b then "(" <> prettyPrint a <> ")" else prettyPrint a
 
 prettyPrintLatex :: Expr -> String
 prettyPrintLatex (Number x) = show x

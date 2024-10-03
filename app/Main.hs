@@ -40,7 +40,3 @@ trimR = reverse . dropWhile (== ' ') . reverse
 
 trimL :: String -> String
 trimL = dropWhile (== ' ')
-
-
--- Run the parser on the input
-

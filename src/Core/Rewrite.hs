@@ -9,6 +9,7 @@ import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Maybe ( fromMaybe )
 import Data.List (nub, sort, sortBy)
+import Debug.Trace (traceShowId, trace)
 
 eval :: Expr -> Expr
 eval e = case e of
@@ -61,16 +62,14 @@ simplifyWith vars s@(Symbol x) = fromMaybe s $ vars M.!? x
 simplifyWith vars (Sum as) = case filter (/= Number 0) $ map (simplifyWith vars) as of
     [] -> Number 0
     [x] -> x
-    -- xs -> Sum $ concatMap (\case {Sum ys -> ys; x -> [x]}) xs
-    xs -> combineLikeTerms $ -- combine like terms -- combine like terms
-           -- combine like terms
+    xs -> combineLikeTerms $ -- combine like terms
           map (\case {Prod ys -> Prod $ sort ys; y -> y}) $ -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same
           concatMap (\case {Sum ys -> ys; y -> [y]}) xs -- pull up nested sums
 simplifyWith vars (Prod as) = case filter (/= Number 1) $ map (simplifyWith vars) as of
     [] -> Number 1
     [x] -> x
     xs -> combineCommonFactors $ -- combine common factors
-          concatMap (\case {Prod ys -> ys; Pow (Prod ys) e -> map (`Pow` e) ys; y -> [y]}) xs -- pull up nested products
+          concatMap (\case {Prod ys -> ys; Pow (Prod ys) e -> map (`Pow` e) ys; y -> [y]}) xs -- pull up nested products and expand powers
 simplifyWith vars (Abs a) = case simplifyWith vars a of
     Number x -> Number (abs x)
     Abs (Abs x) -> Abs x
@@ -121,14 +120,14 @@ simplifyWith _ E = E
 -- Separate the coefficient from the rest of the expression, returns the rest of the expression as a product
 getCoefficient :: Expr -> (Double, Expr)
 getCoefficient (Prod as)  = (product $ map (\case {Number x -> x; _ -> 1}) as, Prod $ filter (\case {Number _ -> False; _ -> True}) as)
-getCoefficient (Number x) = (x, Prod [])
-getCoefficient x = (1, Prod [x])
+getCoefficient x = (1, x)
 
 getExprCoeff :: (Double, Expr) -> Expr
 getExprCoeff (0, _) = Number 0
 getExprCoeff (1, Prod [t]) = t
 getExprCoeff (1, Prod ts) = Prod ts
 getExprCoeff (c, Prod ts) = Prod $ Number c:ts
+getExprCoeff (1, t) = t
 getExprCoeff (c, t) = Prod [Number c, t]
 
 getExponent :: Expr -> (Double, Expr)
@@ -141,22 +140,42 @@ getExprExp (1, t) = t
 getExprExp (e, t) = Pow t $ Number e
 
 combineLikeTerms :: [Expr] -> Expr
-combineLikeTerms ts = case filter (/= Number 0) $ map getExprCoeff $ foldl addTerm [] $ map getCoefficient ts of
+combineLikeTerms ts = case filter (/= Number 0) $ 
+                           map getExprCoeff $ traceShowId $
+                           foldl addTerm [] $ 
+                           map getCoefficient ts of
   [] -> Number 0
-  xs -> Sum $ sortBy (flip compare) xs
+  [x] -> x
+  xs -> Sum $ reverse $ mergeConstants $ sort xs
   where
-    addTerm terms (coefficient, term) = case terms of
-      [] -> [(coefficient, term)]
-      (c, t):rest -> if t == term then (c + coefficient, term):rest else (coefficient, term):terms
+    addTerm terms (c, Number x) = (c, Number x):terms
+    addTerm [] (coefficient, term) = [(coefficient, term)]
+    addTerm ((c, t):rest) (coefficient, term)
+      | t == term = (c + coefficient, term):rest
+      | otherwise = (c, t):addTerm rest (coefficient, term)
+    
+    mergeConstants exprs = case exprs of
+      [] -> []
+      [x] -> [x]
+      (Number a):(Number b):rest -> mergeConstants $ Number (a + b):rest
+      xs -> xs
 
 combineCommonFactors :: [Expr] -> Expr
 combineCommonFactors fs = case filter (/= Number 1) $ map getExprExp $ foldl multFactor [] $ map getExponent fs of
   [] -> Number 1
-  xs -> Prod $ sort xs
+  [x] -> x
+  xs -> Prod $ mergeConstants $ sort xs
   where
-    multFactor factors (power, factor) = case factors of
-      [] -> [(power, factor)]
-      (p, f):rest -> if f == factor then (p + power, factor):rest else (power, factor):factors
+    multFactor factors (power, Number x) = (power, Number x):factors
+    multFactor [] (power, factor) = [(power, factor)]
+    multFactor ((p, f):rest) (power, factor)
+      | f == factor = (p + power, factor):rest
+      | otherwise = (p, f):multFactor rest (power, factor)
+    mergeConstants exprs = case exprs of
+      [] -> []
+      [x] -> [x]
+      (Number a):(Number b):rest -> mergeConstants $ Number (a * b):rest
+      xs -> xs
 
 isPerfectSquare :: Double -> Bool
 isPerfectSquare = (==) <$> sqrt <*> (fromIntegral . round . sqrt)

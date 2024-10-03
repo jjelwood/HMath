@@ -68,15 +68,15 @@ tokenParser = do
     ]
   prevToken <- get
   put $ Just nextToken
-  if nextToken /= SubtractT
-    then return nextToken
-    else case ttype <$> prevToken of
-      Just OpenParen -> return NegT
-      Just Comma -> return NegT
-      Just Operator -> return NegT
-      Just Function -> return NegT
-      Nothing -> return NegT
-      _ -> return SubtractT
+  return $ case (nextToken, prevToken) of
+    (SubtractT, p) -> case ttype <$> p of
+      Just OpenParen -> NegT
+      Just Comma -> NegT
+      Just Operator -> NegT
+      Just Function -> NegT
+      Nothing -> NegT
+      _ -> SubtractT
+    _ -> nextToken
       
 
 data TokenType = Operator

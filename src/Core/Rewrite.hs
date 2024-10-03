@@ -8,8 +8,7 @@ import Core.Types ( Expr(..) )
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Maybe ( fromMaybe )
-import Data.List (nub, sort, sortBy)
-import Debug.Trace (traceShowId, trace)
+import Data.List ( sort, sortBy )
 
 eval :: Expr -> Expr
 eval e = case e of
@@ -62,8 +61,48 @@ simplifyWith vars s@(Symbol x) = fromMaybe s $ vars M.!? x
 simplifyWith vars (Sum as) = case filter (/= Number 0) $ map (simplifyWith vars) as of
     [] -> Number 0
     [x] -> x
-    xs -> combineLikeTerms $ -- combine like terms
-          map (\case {Prod ys -> Prod $ sort ys; y -> y}) $ -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same
+    xs -> combineLikeTerms $ -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms
+           -- combine like terms
+           -- combine like terms
+           -- combine like terms
+           -- combine like terms
+           -- combine like terms
+           -- combine like terms
+           -- combine like terms
+           -- combine like terms
+           -- combine like terms -- combine like terms
+           -- combine like terms -- combine like terms
+           -- combine like terms -- combine like terms
+           -- combine like terms -- combine like terms
+           -- combine like terms
+           -- combine like terms
+           -- combine like terms
+           -- combine like terms
+           -- combine like terms -- combine like terms -- combine like terms -- combine like terms
+           -- combine like terms -- combine like terms -- combine like terms -- combine like terms
+           -- combine like terms
+           -- combine like terms
+           -- combine like terms
+           -- combine like terms
+           -- combine like terms -- combine like terms
+           -- combine like terms -- combine like terms
+           -- combine like terms
+           -- combine like terms
+           -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms
+           -- combine like terms
+           -- combine like terms
+           -- combine like terms
+           -- combine like terms
+           -- combine like terms -- combine like terms
+           -- combine like terms -- combine like terms
+           -- combine like terms
+           -- combine like terms
+           -- combine like terms -- combine like terms -- combine like terms -- combine like terms
+           -- combine like terms
+           -- combine like terms
+           -- combine like terms -- combine like terms
+           -- combine like terms
+          map (\case {Prod ys -> Prod $ sort ys; y -> y}) $ -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same
           concatMap (\case {Sum ys -> ys; y -> [y]}) xs -- pull up nested sums
 simplifyWith vars (Prod as) = case filter (/= Number 1) $ map (simplifyWith vars) as of
     [] -> Number 1
@@ -120,48 +159,48 @@ simplifyWith _ E = E
 -- Separate the coefficient from the rest of the expression, returns the rest of the expression as a product
 getCoefficient :: Expr -> (Double, Expr)
 getCoefficient (Prod as)  = (product $ map (\case {Number x -> x; _ -> 1}) as, Prod $ filter (\case {Number _ -> False; _ -> True}) as)
-getCoefficient x = (1, x)
+getCoefficient (Number x) = (x, Prod [1])
+getCoefficient x = (1, Prod [x])
 
-getExprCoeff :: (Double, Expr) -> Expr
-getExprCoeff (0, _) = Number 0
-getExprCoeff (1, Prod [t]) = t
-getExprCoeff (1, Prod ts) = Prod ts
-getExprCoeff (c, Prod ts) = Prod $ Number c:ts
-getExprCoeff (1, t) = t
-getExprCoeff (c, t) = Prod [Number c, t]
+getExprC :: (Double, Expr) -> Expr
+getExprC (0, _) = Number 0
+getExprC (1, Prod [t]) = t
+getExprC (1, Prod ts) = Prod ts
+getExprC (c, Prod ts) = Prod $ Number c:ts
+getExprC (c, t) = Prod [Number c, t]
 
 getExponent :: Expr -> (Double, Expr)
 getExponent (Pow b (Number e))  = (e, b)
 getExponent x = (1, x)
 
-getExprExp :: (Double, Expr) -> Expr
-getExprExp (0, _) = Number 1
-getExprExp (1, t) = t
-getExprExp (e, t) = Pow t $ Number e
+getExprE :: (Double, Expr) -> Expr
+getExprE (0, _) = Number 1
+getExprE (1, t) = t
+getExprE (e, t) = Pow t $ Number e
 
 combineLikeTerms :: [Expr] -> Expr
-combineLikeTerms ts = case filter (/= Number 0) $ 
-                           map getExprCoeff $ traceShowId $
-                           foldl addTerm [] $ 
-                           map getCoefficient ts of
+combineLikeTerms ts = case filter (/= Number 0) $
+                           map (multIfNumProd . getExprC) (foldl addTerm [] $
+                           map getCoefficient ts) of
   [] -> Number 0
   [x] -> x
-  xs -> Sum $ reverse $ mergeConstants $ sort xs
+  xs -> Sum $ sortBy (flip compare) xs
   where
-    addTerm terms (c, Number x) = (c, Number x):terms
     addTerm [] (coefficient, term) = [(coefficient, term)]
     addTerm ((c, t):rest) (coefficient, term)
       | t == term = (c + coefficient, term):rest
       | otherwise = (c, t):addTerm rest (coefficient, term)
-    
-    mergeConstants exprs = case exprs of
-      [] -> []
-      [x] -> [x]
-      (Number a):(Number b):rest -> mergeConstants $ Number (a + b):rest
-      xs -> xs
+
+multIfNumProd :: Expr -> Expr
+multIfNumProd (Prod xs) | isNumProd xs = Number $ product $ map (\case {Number x -> x; _ -> error "Not a number"}) xs
+                        | otherwise = Prod xs
+multIfNumProd x = x
+
+isNumProd :: [Expr] -> Bool
+isNumProd = all (\case {Number _ -> True; _ -> False})
 
 combineCommonFactors :: [Expr] -> Expr
-combineCommonFactors fs = case filter (/= Number 1) $ map getExprExp $ foldl multFactor [] $ map getExponent fs of
+combineCommonFactors fs = case filter (/= Number 1) $ map getExprE $ foldl multFactor [] $ map getExponent fs of
   [] -> Number 1
   [x] -> x
   xs -> Prod $ mergeConstants $ sort xs

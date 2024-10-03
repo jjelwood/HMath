@@ -1,16 +1,13 @@
 module Main (main) where
 
-import Core.Parser ( exprParser )
 import Core.Rewrite ( simplifyWith )
 import Core.PrettyPrint ( prettyPrint )
-import qualified Data.Text as T
-import qualified Data.Attoparsec.Text as A
+import Core.Parser ( runParser )
 import Data.Map ( Map )
 import qualified Data.Map as M
 import Core.Types (Expr)
 import Control.Monad (forever)
 import System.IO ( hFlush, stdout )
-import Debug.Trace ( traceShowId )
 
 main :: IO ()
 main = do
@@ -33,8 +30,10 @@ runShell vars = forever $ do
       Left err -> putStrLn err
       Right (Left err) -> putStrLn err
       Right (Right expr) -> do
-        -- putStrLn $ prettyPrint expr
-        putStrLn $ prettyPrint $ simplifyWith (traceShowId vars) expr
+        print expr
+        print $ simplifyWith vars expr
+        putStrLn $ prettyPrint expr
+        putStrLn $ prettyPrint $ simplifyWith vars expr
 
 trimR :: String -> String
 trimR = reverse . dropWhile (== ' ') . reverse
@@ -44,5 +43,4 @@ trimL = dropWhile (== ' ')
 
 
 -- Run the parser on the input
-runParser :: String -> Either String (Either String Expr)
-runParser = A.parseOnly exprParser . T.pack
+

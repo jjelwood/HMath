@@ -1,5 +1,3 @@
-{-# LANGUAGE LambdaCase #-}
-
 module Core.Rewrite (
     eval,
     simplify,
@@ -9,8 +7,8 @@ module Core.Rewrite (
 import Core.Types ( Expr(..) )
 import Data.Map (Map)
 import qualified Data.Map as M
-import Data.Maybe (fromMaybe)
-import Data.List (nub)
+import Data.Maybe ( fromMaybe )
+import Data.List (nub, sort, sortBy)
 
 eval :: Expr -> Expr
 eval e = case e of
@@ -18,9 +16,6 @@ eval e = case e of
   Symbol x -> Symbol x
   Sum as -> sum $ map eval as
   Prod as -> product $ map eval as
-  Neg a -> case eval a of
-    Number x -> Number (-x)
-    x -> Neg x
   Abs a -> case eval a of
     Number x -> Number (abs x)
     x -> Abs x
@@ -67,17 +62,15 @@ simplifyWith vars (Sum as) = case filter (/= Number 0) $ map (simplifyWith vars)
     [] -> Number 0
     [x] -> x
     -- xs -> Sum $ concatMap (\case {Sum ys -> ys; x -> [x]}) xs
-    xs -> Sum $ combineLikeTerms $ -- combine equal terms -- combine equal terms -- combine equal terms
-          concatMap (\case {Sum ys -> ys; x -> [x]}) xs -- pull up nested sums
+    xs -> combineLikeTerms $ -- combine like terms -- combine like terms
+           -- combine like terms
+          map (\case {Prod ys -> Prod $ sort ys; y -> y}) $ -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same
+          concatMap (\case {Sum ys -> ys; y -> [y]}) xs -- pull up nested sums
 simplifyWith vars (Prod as) = case filter (/= Number 1) $ map (simplifyWith vars) as of
     [] -> Number 1
     [x] -> x
-    xs -> Prod $ nub $ map (\x -> simplifyWith vars $ Pow x (Number (fromIntegral $ length $ filter (== x) xs))) $ -- combine like factors -- combine like factors -- combine like factors
-          concatMap (\case {Prod ys -> ys; x -> [x]}) xs -- pull up nested products
-simplifyWith vars (Neg a) = case simplifyWith vars a of
-    Number x -> Number (-x)
-    Neg (Neg x) -> x
-    x -> Neg x
+    xs -> combineCommonFactors $ -- combine common factors
+          concatMap (\case {Prod ys -> ys; Pow (Prod ys) e -> map (`Pow` e) ys; y -> [y]}) xs -- pull up nested products
 simplifyWith vars (Abs a) = case simplifyWith vars a of
     Number x -> Number (abs x)
     Abs (Abs x) -> Abs x
@@ -89,10 +82,12 @@ simplifyWith vars (Pow a b) = case (simplifyWith vars a, simplifyWith vars b) of
     (Number 0, _) -> Number 0
     (Number 1, _) -> Number 1
     (Pow x y, z) -> Pow x $ simplifyWith vars $ y * z
+    (base, Log base' x) | base == base' -> x
     (x, y) -> Pow x y
 simplifyWith vars (Log a b) = case (simplifyWith vars a, simplifyWith vars b) of
     (_, Number 0) -> error "log 0 is undefined"
     (_, Number 1) -> Number 0
+    (base, Pow base' x) | base == base' -> x
     (E, x) -> Ln x
     (x, y) -> Log x y
 simplifyWith vars (Ln a) = case simplifyWith vars a of
@@ -126,19 +121,42 @@ simplifyWith _ E = E
 -- Separate the coefficient from the rest of the expression, returns the rest of the expression as a product
 getCoefficient :: Expr -> (Double, Expr)
 getCoefficient (Prod as)  = (product $ map (\case {Number x -> x; _ -> 1}) as, Prod $ filter (\case {Number _ -> False; _ -> True}) as)
+getCoefficient (Number x) = (x, Prod [])
 getCoefficient x = (1, Prod [x])
 
--- getExponent :: Expr -> Int
--- getExponent = sum $ map (\case {Pow _ (Number x) -> round x; _ -> 0}) as
+getExprCoeff :: (Double, Expr) -> Expr
+getExprCoeff (0, _) = Number 0
+getExprCoeff (1, Prod [t]) = t
+getExprCoeff (1, Prod ts) = Prod ts
+getExprCoeff (c, Prod ts) = Prod $ Number c:ts
+getExprCoeff (c, t) = Prod [Number c, t]
 
-combineLikeTerms :: [Expr] -> [Expr]
-combineLikeTerms ts = map (\case {(c, Prod ts') -> Prod (Number c:ts'); _ -> error "Term was expected to be a product"}) $ foldl addTerm [] $ map getCoefficient ts
+getExponent :: Expr -> (Double, Expr)
+getExponent (Pow b (Number e))  = (e, b)
+getExponent x = (1, x)
+
+getExprExp :: (Double, Expr) -> Expr
+getExprExp (0, _) = Number 1
+getExprExp (1, t) = t
+getExprExp (e, t) = Pow t $ Number e
+
+combineLikeTerms :: [Expr] -> Expr
+combineLikeTerms ts = case filter (/= Number 0) $ map getExprCoeff $ foldl addTerm [] $ map getCoefficient ts of
+  [] -> Number 0
+  xs -> Sum $ sortBy (flip compare) xs
   where
     addTerm terms (coefficient, term) = case terms of
       [] -> [(coefficient, term)]
       (c, t):rest -> if t == term then (c + coefficient, term):rest else (coefficient, term):terms
 
--- combineCommonFactors :: [Expr] -> [Expr]
+combineCommonFactors :: [Expr] -> Expr
+combineCommonFactors fs = case filter (/= Number 1) $ map getExprExp $ foldl multFactor [] $ map getExponent fs of
+  [] -> Number 1
+  xs -> Prod $ sort xs
+  where
+    multFactor factors (power, factor) = case factors of
+      [] -> [(power, factor)]
+      (p, f):rest -> if f == factor then (p + power, factor):rest else (power, factor):factors
 
 isPerfectSquare :: Double -> Bool
 isPerfectSquare = (==) <$> sqrt <*> (fromIntegral . round . sqrt)

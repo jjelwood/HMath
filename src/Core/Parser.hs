@@ -1,5 +1,5 @@
 module Core.Parser (
-  exprParser
+  exprParser, runParser
 ) where
 
 import Data.Attoparsec.Text
@@ -7,8 +7,7 @@ import Core.Types (Expr(..))
 import Control.Monad.Trans.State
 import Control.Monad.Trans.Class
 import Data.Bifunctor (Bifunctor(second))
-import Debug.Trace (traceShowId)
-import qualified Data.Map as M
+import qualified Data.Text as T
 
 data Token = AddT
            | SubtractT
@@ -225,3 +224,6 @@ evalTokenOnStack _ _ = error "Invalid token"
 
 iterateWhile :: (a -> Bool) -> (a -> a) -> a -> a
 iterateWhile cond step x = if cond x then iterateWhile cond step (step x) else x
+
+runParser :: String -> Either String (Either String Expr)
+runParser = parseOnly exprParser . T.pack

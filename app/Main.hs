@@ -1,13 +1,13 @@
 module Main (main) where
 
-import Core.Rewrite ( simplifyWith )
-import Core.PrettyPrint ( prettyPrint )
-import Core.Parser ( runParser )
-import Data.Map ( Map )
-import qualified Data.Map as M
-import Core.Types (Expr)
 import Control.Monad (forever)
-import System.IO ( hFlush, stdout )
+import Core.Parser (runParser)
+import Core.PrettyPrint (prettyPrint)
+import Core.Rewrite (simplifyWith)
+import Core.Types (Expr)
+import Data.Map (Map)
+import qualified Data.Map as M
+import System.IO (hFlush, stdout)
 
 main :: IO ()
 main = do

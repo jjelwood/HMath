@@ -1,9 +1,10 @@
-module Core.PrettyPrint (
-    prettyPrint,
-    prettyPrintLatex
-) where
+module Core.PrettyPrint
+  ( prettyPrint,
+    prettyPrintLatex,
+  )
+where
 
-import Core.Types ( Expr(..), operatorPrecedence )
+import Core.Types (Expr (..), operatorPrecedence)
 import Data.List (intercalate)
 
 prettyPrint :: Expr -> String
@@ -26,7 +27,7 @@ prettyPrint Pi = "pi"
 prettyPrint E = "e"
 
 bracketIfLowerPrecedence :: (Expr -> String) -> Expr -> Expr -> String
-bracketIfLowerPrecedence f a b = if operatorPrecedence b < operatorPrecedence a then "(" <> f a <> ")" else f a
+bracketIfLowerPrecedence f a b = if operatorPrecedence b < operatorPrecedence a then "(" <> f b <> ")" else f b
 
 prettyPrintLatex :: Expr -> String
 prettyPrintLatex (Number x) = show x

@@ -1,33 +1,36 @@
-module Core.Types (
-    Expr(..),
-    Equation(..),
-    operatorPrecedence
-) where
+module Core.Types
+  ( Expr (..),
+    Equation (..),
+    operatorPrecedence,
+  )
+where
 
-data Expr = Number Double
-            | Symbol String
-            | Sum [Expr]
-            | Prod [Expr]
-            | Abs Expr
-            | Pow Expr Expr
-            | Log Expr Expr
-            | Sin Expr
-            | Cos Expr
-            | Sqrt Expr
-            | Asin Expr
-            | Acos Expr
-            | Atan Expr 
-            | Ln Expr
-            | Tan Expr
-            | Pi
-            | E
-            deriving (Show, Eq)
+data Expr
+  = Number Double
+  | Symbol String
+  | Sum [Expr]
+  | Prod [Expr]
+  | Abs Expr
+  | Pow Expr Expr
+  | Log Expr Expr
+  | Sin Expr
+  | Cos Expr
+  | Sqrt Expr
+  | Asin Expr
+  | Acos Expr
+  | Atan Expr
+  | Ln Expr
+  | Tan Expr
+  | Pi
+  | E
+  deriving (Show, Eq)
 
 -- Exprs can have their complexity compared by a number of metrics
 -- for now we'll just use the number of nodes in the tree
 instance Ord Expr where
-  compare a b = compare (operatorOrdering a) (operatorOrdering b) <>
-                compareInstances a b
+  compare a b =
+    compare (operatorOrdering a) (operatorOrdering b)
+      <> compareInstances a b
 
 compareInstances :: Expr -> Expr -> Ordering
 compareInstances (Number a) (Number b) = compare a b
@@ -48,25 +51,6 @@ compareInstances (Tan a) (Tan b) = compare a b
 compareInstances Pi Pi = EQ
 compareInstances E E = EQ
 compareInstances _ _ = error "Cannot compare different types of expressions"
-
--- complexity :: Expr -> Int
--- complexity (Number _) = 1
--- complexity (Symbol _) = 1
--- complexity Pi = 1
--- complexity E = 1
--- complexity (Sum as) = sum (map (\term -> complexity term + 1) as) - 1
--- complexity (Prod as) = sum (map (\term -> complexity term + 1) as) - 1
--- complexity (Pow a b) = 1 + complexity a + complexity b
--- complexity (Log a b) = 1 + complexity a + complexity b
--- complexity (Sin a) = 1 + complexity a
--- complexity (Cos a) = 1 + complexity a
--- complexity (Asin a) = 1 + complexity a
--- complexity (Acos a) = 1 + complexity a
--- complexity (Atan a) = 1 + complexity a
--- complexity (Ln a) = 1 + complexity a
--- complexity (Tan a) = 1 + complexity a
--- complexity (Abs a) = 1 + complexity a
--- complexity (Sqrt a) = 1 + complexity a
 
 operatorOrdering :: Expr -> Int
 operatorOrdering (Number _) = 0
@@ -97,24 +81,23 @@ operatorPrecedence (Pow _ _) = 3
 -- operatorPrecedence Pi = 100
 operatorPrecedence _ = 100
 
-
 data Equation = Equation Expr Expr
-                deriving (Show, Eq)
+  deriving (Show, Eq)
 
 instance Num Expr where
-    a + b = Sum [a, b]
-    a - b = Sum [a, -b]
-    a * b = Prod [a, b]
-    negate = Prod . (:[Number (-1)])
-    abs = Abs
-    signum = undefined
-    fromInteger = Number . fromInteger
+  a + b = Sum [a, b]
+  a - b = Sum [a, -b]
+  a * b = Prod [a, b]
+  negate = Prod . (: [Number (-1)])
+  abs = Abs
+  signum = undefined
+  fromInteger = Number . fromInteger
 
 instance Fractional Expr where
-    a / b = Prod [a, Pow b (Number (-1))]
-    fromRational = Number . fromRational
+  a / b = Prod [a, Pow b (Number (-1))]
+  fromRational = Number . fromRational
 
-instance Floating Expr where 
+instance Floating Expr where
   pi = Number pi
   exp = Pow (Number $ exp 1)
   log = Log (Number $ exp 1)

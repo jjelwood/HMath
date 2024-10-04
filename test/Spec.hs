@@ -1,8 +1,9 @@
-import Test.HUnit
 import qualified ParserSpec as Parser
+import Test.HUnit
 
 main :: IO Counts
-main = runTestTT $ TestList [
-    Parser.testList
-  ]
-
+main =
+  runTestTT $
+    TestList
+      [ Parser.testList
+      ]

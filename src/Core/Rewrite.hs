@@ -64,47 +64,7 @@ simplifyWith vars (Sum as) = case filter (/= Number 0) $ map (simplifyWith vars)
   [] -> Number 0
   [x] -> x
   xs ->
-    combineLikeTerms $ -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms
-    -- combine like terms
-    -- combine like terms
-    -- combine like terms
-    -- combine like terms
-    -- combine like terms
-    -- combine like terms
-    -- combine like terms
-    -- combine like terms
-    -- combine like terms -- combine like terms
-    -- combine like terms -- combine like terms
-    -- combine like terms -- combine like terms
-    -- combine like terms -- combine like terms
-    -- combine like terms
-    -- combine like terms
-    -- combine like terms
-    -- combine like terms
-    -- combine like terms -- combine like terms -- combine like terms -- combine like terms
-    -- combine like terms -- combine like terms -- combine like terms -- combine like terms
-    -- combine like terms
-    -- combine like terms
-    -- combine like terms
-    -- combine like terms
-    -- combine like terms -- combine like terms
-    -- combine like terms -- combine like terms
-    -- combine like terms
-    -- combine like terms
-    -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms -- combine like terms
-    -- combine like terms
-    -- combine like terms
-    -- combine like terms
-    -- combine like terms
-    -- combine like terms -- combine like terms
-    -- combine like terms -- combine like terms
-    -- combine like terms
-    -- combine like terms
-    -- combine like terms -- combine like terms -- combine like terms -- combine like terms
-    -- combine like terms
-    -- combine like terms
-    -- combine like terms -- combine like terms
-    -- combine like terms
+    combineLikeTerms $ -- combine like terms
       map (\case Prod ys -> Prod $ sort ys; y -> y) $ -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same
         concatMap (\case Sum ys -> ys; y -> [y]) xs -- pull up nested sums
 simplifyWith vars (Prod as) = case filter (/= Number 1) $ map (simplifyWith vars) as of

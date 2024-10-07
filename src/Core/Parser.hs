@@ -17,6 +17,8 @@ data Token
   | MultiplyT
   | DivideT
   | PowerT
+  | EqT
+  | DerivativeT
   | NegT
   | OpenParenT
   | CloseParenT
@@ -57,6 +59,7 @@ tokenParser = do
           string "*" >> return MultiplyT,
           string "/" >> return DivideT,
           string "^" >> return PowerT,
+          string "=" >> return EqT,
           string "(" >> return OpenParenT,
           string ")" >> return CloseParenT,
           string "pi" >> return PiT,
@@ -68,6 +71,7 @@ tokenParser = do
           string "ln" >> return LnT,
           string "sqrt" >> return SqrtT,
           string "abs" >> return AbsT,
+          string "D" >> return DerivativeT,
           string "," >> return CommaT,
           NumberT <$> double,
           VariableT <$> many1 letter
@@ -99,6 +103,8 @@ ttype SubtractT = Operator
 ttype MultiplyT = Operator
 ttype DivideT = Operator
 ttype PowerT = Operator
+ttype EqT = Operator
+ttype DerivativeT = Operator
 ttype NegT = Function
 ttype OpenParenT = OpenParen
 ttype CloseParenT = CloseParen
@@ -116,11 +122,12 @@ ttype (VariableT _) = Numlike
 ttype (NumberT _) = Numlike
 
 precedence :: Token -> Int
-precedence AddT = 1
-precedence SubtractT = 1
-precedence MultiplyT = 2
-precedence DivideT = 2
-precedence PowerT = 3
+precedence EqT = 1
+precedence AddT = 2
+precedence SubtractT = 2
+precedence MultiplyT = 3
+precedence DivideT = 3
+precedence PowerT = 4
 precedence _ = 0
 
 data Dir = L | R deriving (Show, Eq)
@@ -223,17 +230,19 @@ evalTokenOnStack (Just stack) PiT = Just $ Pi : stack
 evalTokenOnStack (Just stack) ET = Just $ E : stack
 evalTokenOnStack (Just (a : b : stack)) AddT = Just $ Sum [b, a] : stack
 evalTokenOnStack (Just (a : b : stack)) SubtractT = Just $ Sum [b, -a] : stack
-evalTokenOnStack (Just (a : b : stack)) MultiplyT = Just $ Prod [b, a] : stack
-evalTokenOnStack (Just (a : b : stack)) DivideT = Just $ Prod [b, Pow a $ Number (-1)] : stack
+evalTokenOnStack (Just (a : b : stack)) MultiplyT = Just $ Product [b, a] : stack
+evalTokenOnStack (Just (a : b : stack)) DivideT = Just $ Product [b, Pow a $ Number (-1)] : stack
 evalTokenOnStack (Just (a : b : stack)) PowerT = Just $ Pow b a : stack
+evalTokenOnStack (Just (a : b : stack)) EqT = Just $ Eq b a : stack
 evalTokenOnStack (Just (a : b : stack)) LogT = Just $ Log b a : stack
+evalTokenOnStack (Just (a : b : stack)) DerivativeT = Just $ Derivative b a : stack
 evalTokenOnStack (Just (a : stack)) SinT = Just $ Sin a : stack
 evalTokenOnStack (Just (a : stack)) CosT = Just $ Cos a : stack
 evalTokenOnStack (Just (a : stack)) TanT = Just $ Tan a : stack
 evalTokenOnStack (Just (a : stack)) LnT = Just $ Ln a : stack
 evalTokenOnStack (Just (a : stack)) SqrtT = Just $ Sqrt a : stack
 evalTokenOnStack (Just (a : stack)) AbsT = Just $ Abs a : stack
-evalTokenOnStack (Just (a : stack)) NegT = Just $ Prod [Number (-1), a] : stack
+evalTokenOnStack (Just (a : stack)) NegT = Just $ Product [Number (-1), a] : stack
 evalTokenOnStack _ _ = Nothing
 
 iterateWhile :: (a -> Bool) -> (a -> a) -> a -> a

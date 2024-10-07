@@ -30,6 +30,7 @@ library
       Core.PrettyPrint
       Core.Rewrite
       Core.Types
+      Core.Derivatives
   other-modules:
       Paths_HMath
   autogen-modules:

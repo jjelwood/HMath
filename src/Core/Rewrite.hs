@@ -7,6 +7,7 @@ module Core.Rewrite
 where
 
 import Core.Types (Expr (..))
+import Core.Derivatives (differentiate)
 import Data.List (sort)
 import Data.Map (Map)
 import qualified Data.Map as M
@@ -17,7 +18,9 @@ eval e = case e of
   Number x -> Number x
   Symbol x -> Symbol x
   Sum as -> sum $ map eval as
-  Prod as -> product $ map eval as
+  Product as -> product $ map eval as
+  Eq a b -> Eq (eval a) (eval b)
+  Derivative x f -> Derivative x $ eval f
   Abs a -> case eval a of
     Number x -> Number (abs x)
     x -> Abs x
@@ -60,19 +63,21 @@ simplify = simplifyWith M.empty
 simplifyWith :: Map String Expr -> Expr -> Expr
 simplifyWith _ (Number x) = Number x
 simplifyWith vars s@(Symbol x) = fromMaybe s $ vars M.!? x
+simplifyWith vars (Eq e1 e2) = Eq (simplifyWith vars e1) (simplifyWith vars e2)
+simplifyWith vars (Derivative x e) = simplifyWith vars $ differentiate x e
 simplifyWith vars (Sum as) = case filter (/= Number 0) $ map (simplifyWith vars) as of
   [] -> Number 0
   [x] -> x
   xs ->
     combineLikeTerms $ -- combine like terms
-      map (\case Prod ys -> Prod $ sort ys; y -> y) $ -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same
+      map (\case Product ys -> Product $ sort ys; y -> y) $ -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same -- sort, i.e. so that xy and yx are considered the same
         concatMap (\case Sum ys -> ys; y -> [y]) xs -- pull up nested sums
-simplifyWith vars (Prod as) = case filter (/= Number 1) $ map (simplifyWith vars) as of
+simplifyWith vars (Product as) = case filter (/= Number 1) $ map (simplifyWith vars) as of
   [] -> Number 1
   [x] -> x
   xs ->
     combineCommonFactors $ -- combine common factors
-      concatMap (\case Prod ys -> ys; Pow (Prod ys) e -> map (`Pow` e) ys; y -> [y]) xs -- pull up nested products and expand powers
+      concatMap (\case Product ys -> ys; Pow (Product ys) e -> map (`Pow` e) ys; y -> [y]) xs -- pull up nested products and expand powers
 simplifyWith vars (Abs a) = case simplifyWith vars a of
   Number x -> Number (abs x)
   Abs (Abs x) -> Abs x
@@ -122,16 +127,16 @@ simplifyWith _ E = E
 
 -- Separate the coefficient from the rest of the expression, returns the rest of the expression as a product
 getCoefficient :: Expr -> (Double, Expr)
-getCoefficient (Prod as) = (product $ map (\case Number x -> x; _ -> 1) as, Prod $ filter (\case Number _ -> False; _ -> True) as)
-getCoefficient (Number x) = (x, Prod [1])
-getCoefficient x = (1, Prod [x])
+getCoefficient (Product as) = (product $ map (\case Number x -> x; _ -> 1) as, Product $ filter (\case Number _ -> False; _ -> True) as)
+getCoefficient (Number x) = (x, Product [1])
+getCoefficient x = (1, Product [x])
 
 getExprC :: (Double, Expr) -> Expr
 getExprC (0, _) = Number 0
-getExprC (1, Prod [t]) = t
-getExprC (1, Prod ts) = Prod ts
-getExprC (c, Prod ts) = Prod $ Number c : ts
-getExprC (c, t) = Prod [Number c, t]
+getExprC (1, Product [t]) = t
+getExprC (1, Product ts) = Product ts
+getExprC (c, Product ts) = Product $ Number c : ts
+getExprC (c, t) = Product [Number c, t]
 
 getExponent :: Expr -> (Double, Expr)
 getExponent (Pow b (Number e)) = (e, b)
@@ -145,7 +150,7 @@ getExprE (e, t) = Pow t $ Number e
 combineLikeTerms :: [Expr] -> Expr
 combineLikeTerms ts = case filter (/= Number 0) $
   map
-    (multIfNumProd . getExprC)
+    (multIfNumProduct . getExprC)
     ( foldl addTerm [] $
         map getCoefficient ts
     ) of
@@ -159,20 +164,20 @@ combineLikeTerms ts = case filter (/= Number 0) $
       | t == term = (c + coefficient, term) : rest
       | otherwise = (c, t) : addTerm rest (coefficient, term)
 
-multIfNumProd :: Expr -> Expr
-multIfNumProd (Prod xs)
-  | isNumProd xs = Number $ product $ map (\case Number x -> x; _ -> error "Not a number") xs
-  | otherwise = Prod xs
-multIfNumProd x = x
+multIfNumProduct :: Expr -> Expr
+multIfNumProduct (Product xs)
+  | isNumProduct xs = Number $ product $ map (\case Number x -> x; _ -> error "Not a number") xs
+  | otherwise = Product xs
+multIfNumProduct x = x
 
-isNumProd :: [Expr] -> Bool
-isNumProd = all (\case Number _ -> True; _ -> False)
+isNumProduct :: [Expr] -> Bool
+isNumProduct = all (\case Number _ -> True; _ -> False)
 
 combineCommonFactors :: [Expr] -> Expr
 combineCommonFactors fs = case filter (/= Number 1) $ map getExprE $ foldl multFactor [] $ map getExponent fs of
   [] -> Number 1
   [x] -> x
-  xs -> Prod $ mergeConstants $ sort xs
+  xs -> Product $ mergeConstants $ sort xs
   where
     multFactor factors (power, Number x) = (power, Number x) : factors
     multFactor [] (power, factor) = [(power, factor)]

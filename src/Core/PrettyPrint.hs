@@ -10,8 +10,10 @@ import Data.List (intercalate)
 prettyPrint :: Expr -> String
 prettyPrint (Number x) = if x == fromIntegral (round x) then show $ round x else show x
 prettyPrint (Symbol x) = x
+prettyPrint (Eq a b) = prettyPrint a <> " = " <> prettyPrint b
+prettyPrint (Derivative x f) = "d/d" <> prettyPrint x <> "(" <> prettyPrint f <> ")"
 prettyPrint e@(Sum as) = intercalate " + " $ map (bracketIfLowerPrecedence prettyPrint e) as
-prettyPrint e@(Prod as) = intercalate " * " $ map (bracketIfLowerPrecedence prettyPrint e) as
+prettyPrint e@(Product as) = intercalate " * " $ map (bracketIfLowerPrecedence prettyPrint e) as
 prettyPrint (Abs a) = "|" <> prettyPrint a <> "|"
 prettyPrint e@(Pow a b) = bracketIfLowerPrecedence prettyPrint e a <> " ^ " <> bracketIfLowerPrecedence prettyPrint e b
 prettyPrint e@(Log a b) = "log_" <> bracketIfLowerPrecedence prettyPrint e a <> "(" <> prettyPrint b <> ")"
@@ -33,7 +35,9 @@ prettyPrintLatex :: Expr -> String
 prettyPrintLatex (Number x) = show x
 prettyPrintLatex (Symbol x) = x
 prettyPrintLatex e@(Sum as) = intercalate " + " $ map (bracketIfLowerPrecedence prettyPrint e) as
-prettyPrintLatex e@(Prod as) = intercalate " \\cdot " $ map (bracketIfLowerPrecedence prettyPrint e) as
+prettyPrintLatex e@(Product as) = intercalate " \\cdot " $ map (bracketIfLowerPrecedence prettyPrint e) as
+prettyPrintLatex (Eq a b) = prettyPrintLatex a <> " = " <> prettyPrintLatex b
+prettyPrintLatex (Derivative x f) = "\\frac{d}{d" <> prettyPrintLatex x <> "}\\left(" <> prettyPrintLatex f <> "\\right)"
 prettyPrintLatex (Abs a) = "\\left|" <> prettyPrintLatex a <> "\\right|"
 prettyPrintLatex e@(Pow a b) = bracketIfLowerPrecedence prettyPrintLatex e a <> "^{" <> prettyPrintLatex b <> "}"
 prettyPrintLatex (Log a b) = "\\log_{" <> prettyPrintLatex a <> "}\\left(" <> prettyPrintLatex b <> "\\right)"

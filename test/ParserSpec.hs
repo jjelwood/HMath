@@ -31,11 +31,11 @@ passList =
       testParse "cos(x)" (Cos (Symbol "x")),
       testParse "log(x, y)" (Log (Symbol "x") (Symbol "y")),
       testParse "sin(x) + cos(y)" (Sum [Sin (Symbol "x"), Cos (Symbol "y")]),
-      testParse "x * y" (Prod [Symbol "x", Symbol "y"]),
-      testParse "x * y + z" (Sum [Prod [Symbol "x", Symbol "y"], Symbol "z"]),
-      testParse "x * (y + z)" (Prod [Symbol "x", Sum [Symbol "y", Symbol "z"]]),
-      testParse "x + y * z" (Sum [Symbol "x", Prod [Symbol "y", Symbol "z"]]),
-      testParse "2x" (Prod [Number 2, Symbol "x"])
+      testParse "x * y" (Product [Symbol "x", Symbol "y"]),
+      testParse "x * y + z" (Sum [Product [Symbol "x", Symbol "y"], Symbol "z"]),
+      testParse "x * (y + z)" (Product [Symbol "x", Sum [Symbol "y", Symbol "z"]]),
+      testParse "x + y * z" (Sum [Symbol "x", Product [Symbol "y", Symbol "z"]]),
+      testParse "2x" (Product [Number 2, Symbol "x"])
     ]
 
 failList :: Test

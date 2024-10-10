@@ -22,10 +22,13 @@ data Expr
   | Atan Expr
   | Ln Expr
   | Tan Expr
+  | Subst Expr Expr Expr
+  | NSolve Expr Expr
   | Pi
   | E
   | Eq Expr Expr
   | Derivative Expr Expr
+  | Error String
   deriving (Show, Eq)
 
 -- Exprs can have their complexity compared by a number of metrics
@@ -53,9 +56,15 @@ compareInstances (Ln a) (Ln b) = compare a b
 compareInstances (Tan a) (Tan b) = compare a b
 compareInstances Pi Pi = EQ
 compareInstances E E = EQ
+compareInstances (Eq a b) (Eq c d) = compare a c <> compare b d
+compareInstances (Derivative a b) (Derivative c d) = compare a c <> compare b d
+compareInstances (Error a) (Error b) = compare a b
+compareInstances (Subst a b c) (Subst a' b' c') = compare a a' <> compare b b' <> compare c c'
+compareInstances (NSolve a b) (NSolve a' b') = compare a a' <> compare b b'
 compareInstances _ _ = error "Cannot compare different types of expressions"
 
 operatorOrdering :: Expr -> Int
+operatorOrdering (Error _) = -1
 operatorOrdering (Number _) = 0
 operatorOrdering (Symbol _) = 1
 operatorOrdering Pi = 2
@@ -75,6 +84,8 @@ operatorOrdering (Abs _) = 15
 operatorOrdering (Sqrt _) = 16
 operatorOrdering (Derivative _ _) = 17
 operatorOrdering (Eq _ _) = 18
+operatorOrdering (Subst _ _ _) = 19
+operatorOrdering (NSolve _ _) = 20
 
 operatorPrecedence :: Expr -> Int
 operatorPrecedence (Sum _) = 1
@@ -138,5 +149,10 @@ isNumeric vars expr = notElem expr vars && case expr of
   Atan x -> isNum x
   Ln x -> isNum x
   Tan x -> isNum x
+  Subst {} -> False
+  NSolve _ _ -> True
+  Error _ -> False
   where
     isNum = isNumeric vars
+
+

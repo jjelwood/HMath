@@ -3,32 +3,34 @@ module Core.Derivatives (
 ) where
 
 import Core.Types
-import Debug.Trace (traceShow)
 
 differentiate :: Expr -> Expr -> Expr
-differentiate s f = traceShow f $ if s == f then 1 else case f of
+differentiate s f = if s == f then 1 else case f of
     Symbol _ -> 0
     Number _ -> 0
     E -> 0
     Pi -> 0
-    Eq _ _ -> error "Cannot differentiate an equation"
-    Derivative _ _ -> error "Cannot differentiate a derivative"
     Sum fs -> Sum $ map d fs
-    Product fs -> foldl1 (\acc expr -> Sum [Product [expr, d acc], Product [d expr, acc]]) fs
-    Pow b n | isNumeric [s] n -> chain b $ Product [n, Pow b (Sum [n, Number (-1)])]
+    Product fs -> foldl1 (\acc expr -> expr * d acc + d expr * acc) fs
+    Pow b n | isNumeric [s] n -> chain b $ n * Pow b (n - 1)
     Pow E e -> chain e $ Pow E e
-    Pow b e -> d $ Pow E (Product [Ln b, e])
-    Log x y -> d $ Product [Ln x, Pow (Ln y) (-1)]
-    Ln x -> chain x $ Pow x (Number (-1))
-    Sqrt x -> d $ Pow x (Number 0.5)
-    Abs x -> d $ Pow (Pow x 2) 0.5
+    Pow b e -> d $ Pow E (e * Ln b)
+    Log x y -> d $ Product [Ln x, recip (Ln y)]
+    Ln x -> chain x $ recip x
+    Sqrt x -> d $ Pow x 0.5
+    Abs _ -> undefined
     Sin x -> chain x $ Cos x
-    Cos x -> chain x $ Product [Number (-1), Sin x]
+    Cos x -> chain x $ -Sin x
     Tan x -> chain x $ Pow (Cos x) (-2)
-    Asin _ -> undefined
-    Acos _ -> undefined
-    Atan _ -> undefined
+    Asin x -> chain x $ Pow (1 - Pow x 2) (-0.5)
+    Acos x -> chain x $ -Pow (1 - Pow x 2) (-0.5)
+    Atan x -> chain x $ recip (Pow x 2 + 1)
+    Eq lhs rhs -> Eq (d lhs) (d rhs)
+    Subst {} -> Error "Cannot differentiate a substitution"
+    Derivative _ _ -> Error "Cannot differentiate a derivative"
+    NSolve _ _ -> 0
+    Error e -> Error e
     where
-        d = differentiate s 
-        chain arg expr' = Product [expr', d arg]
-    
+        d = differentiate s
+        chain arg expr' = expr' * d arg
+

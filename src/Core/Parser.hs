@@ -32,6 +32,8 @@ data Token
   | SqrtT
   | AbsT
   | CommaT
+  | SubstT
+  | NSolveT
   | VariableT String
   | NumberT Double
   deriving (Show, Eq)
@@ -72,6 +74,8 @@ tokenParser = do
           string "sqrt" >> return SqrtT,
           string "abs" >> return AbsT,
           string "D" >> return DerivativeT,
+          string "subst" >> return SubstT,
+          string "nsolve" >> return NSolveT,
           string "," >> return CommaT,
           NumberT <$> double,
           VariableT <$> many1 letter
@@ -117,6 +121,8 @@ ttype LogT = Function
 ttype LnT = Function
 ttype SqrtT = Function
 ttype AbsT = Function
+ttype SubstT = Function
+ttype NSolveT = Function
 ttype CommaT = Comma
 ttype (VariableT _) = Numlike
 ttype (NumberT _) = Numlike
@@ -235,7 +241,7 @@ evalTokenOnStack (Just (a : b : stack)) DivideT = Just $ Product [b, Pow a $ Num
 evalTokenOnStack (Just (a : b : stack)) PowerT = Just $ Pow b a : stack
 evalTokenOnStack (Just (a : b : stack)) EqT = Just $ Eq b a : stack
 evalTokenOnStack (Just (a : b : stack)) LogT = Just $ Log b a : stack
-evalTokenOnStack (Just (a : b : stack)) DerivativeT = Just $ Derivative b a : stack
+evalTokenOnStack (Just (b : a : stack)) DerivativeT = Just $ Derivative b a : stack
 evalTokenOnStack (Just (a : stack)) SinT = Just $ Sin a : stack
 evalTokenOnStack (Just (a : stack)) CosT = Just $ Cos a : stack
 evalTokenOnStack (Just (a : stack)) TanT = Just $ Tan a : stack
@@ -243,6 +249,8 @@ evalTokenOnStack (Just (a : stack)) LnT = Just $ Ln a : stack
 evalTokenOnStack (Just (a : stack)) SqrtT = Just $ Sqrt a : stack
 evalTokenOnStack (Just (a : stack)) AbsT = Just $ Abs a : stack
 evalTokenOnStack (Just (a : stack)) NegT = Just $ Product [Number (-1), a] : stack
+evalTokenOnStack (Just (a : b : c : stack)) SubstT = Just $ Subst c b a : stack
+evalTokenOnStack (Just (a : b : stack)) NSolveT = Just $ NSolve b a : stack
 evalTokenOnStack _ _ = Nothing
 
 iterateWhile :: (a -> Bool) -> (a -> a) -> a -> a

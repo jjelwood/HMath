@@ -25,8 +25,11 @@ prettyPrint (Acos a) = "acos(" <> prettyPrint a <> ")"
 prettyPrint (Atan a) = "atan(" <> prettyPrint a <> ")"
 prettyPrint (Ln a) = "ln(" <> prettyPrint a <> ")"
 prettyPrint (Tan a) = "tan(" <> prettyPrint a <> ")"
+prettyPrint (Subst a b c) = "(" <> prettyPrint a <> ") /. (" <> prettyPrint b <> " -> " <> prettyPrint c <> ")"
+prettyPrint (NSolve a b) = "NSolve(" <> prettyPrint a <> ", " <> prettyPrint b <> ")"
 prettyPrint Pi = "pi"
 prettyPrint E = "e"
+prettyPrint (Error s) = "Error: " <> s
 
 bracketIfLowerPrecedence :: (Expr -> String) -> Expr -> Expr -> String
 bracketIfLowerPrecedence f a b = if operatorPrecedence b < operatorPrecedence a then "(" <> f b <> ")" else f b
@@ -49,5 +52,8 @@ prettyPrintLatex (Acos a) = "\\arccos\\left(" <> prettyPrintLatex a <> "\\right)
 prettyPrintLatex (Atan a) = "\\arctan\\left(" <> prettyPrintLatex a <> "\\right)"
 prettyPrintLatex (Ln a) = "\\ln\\left(" <> prettyPrintLatex a <> "\\right)"
 prettyPrintLatex (Tan a) = "\\tan\\left(" <> prettyPrintLatex a <> "\\right)"
+prettyPrintLatex (Subst a b c) = "\\left(" <> prettyPrintLatex a <> "\\right) /. \\left(" <> prettyPrintLatex b <> " -> " <> prettyPrintLatex c <> "\\right)"
+prettyPrintLatex (NSolve a b) = "\\text{NSolve}\\left(" <> prettyPrintLatex a <> ", " <> prettyPrintLatex b <> "\\right)"
 prettyPrintLatex Pi = "\\pi"
 prettyPrintLatex E = "e"
+prettyPrintLatex (Error s) = "\\text{Error: " <> s <> "}"
